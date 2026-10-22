@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>診断レポートのサンプル | AI Content Studio</title>
+  <style>
+    :root { --ink:#162033; --muted:#596579; --brand:#2455d6; --line:#e3e8f1; --paper:#f6f8fc; --card:#fff; --warn:#a14a00; --warnbg:#fff4e5; --ok:#1d7a43; }
+    @media (prefers-color-scheme: dark) {
+      :root { --ink:#e8ecf4; --muted:#a3adbf; --brand:#7c9cff; --line:#2a3346; --paper:#0f1522; --card:#161e2e; --warn:#ffb26b; --warnbg:#2e2213; --ok:#6fd49a; }
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.8; }
+    main { max-width:820px; margin:auto; padding:40px 16px 64px; }
+    .banner { background:var(--warnbg); color:var(--warn); border-radius:12px; padding:12px 16px; font-weight:700; font-size:14px; }
+    h1 { font-size:clamp(24px,5vw,34px); line-height:1.35; }
+    h2 { font-size:20px; margin-top:32px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-top:12px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+    .ng { color:var(--warn); font-weight:800; white-space:nowrap; }
+    .ok { color:var(--ok); font-weight:800; white-space:nowrap; }
+    .small { font-size:13px; color:var(--muted); }
+    blockquote { margin:8px 0; padding:8px 14px; border-left:3px solid var(--line); color:var(--muted); }
+    a { color:var(--brand); }
+    .table-wrap { overflow-x:auto; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="banner">これは架空の店舗「カフェ・ミカゲ食堂（仮）」で作成したサンプルです。実在の店舗・お客様・口コミではありません。</p>
+    <h1>Googleビジネスプロフィール 診断レポート（サンプル）</h1>
+    <p class="small">対象：カフェ・ミカゲ食堂（架空）／診断方法：公開されている掲載情報の目視確認</p>
+
+    <h2>1. 診断結果の要約</h2>
+    <div class="card">
+      <p>優先して直すべき点は3つです。</p>
+      <ol>
+        <li><strong>未返信の口コミが12件</strong>あり、そのうち★2以下が2件。</li>
+        <li>祝日の営業時間が未設定で、「営業中」と表示される日に休業している可能性がある。</li>
+        <li>店舗説明文がなく、ランチの価格帯やテイクアウトの有無が地図上でわからない。</li>
+      </ol>
+    </div>
+
+    <h2>2. チェック項目（抜粋）</h2>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>状態</th><th>対応</th></tr></thead>
+        <tbody>
+          <tr><td>ビジネス名</td><td class="ok">問題なし</td><td>—</td></tr>
+          <tr><td>メインカテゴリ</td><td class="ng">要確認</td><td>「レストラン」→「カフェ」の方が実態に近い</td></tr>
+          <tr><td>通常の営業時間</td><td class="ok">問題なし</td><td>—</td></tr>
+          <tr><td>祝日の営業時間</td><td class="ng">未設定</td><td>年末年始・祝日の営業時間を登録</td></tr>
+          <tr><td>店舗説明文</td><td class="ng">未設定</td><td>下の文案を貼り付け</td></tr>
+          <tr><td>メニュー写真</td><td class="ng">2枚のみ</td><td>ランチ3品・ドリンク・外観を追加</td></tr>
+          <tr><td>属性（テイクアウト・Wi-Fiなど）</td><td class="ng">未設定</td><td>該当するものにチェック</td></tr>
+          <tr><td>口コミへの返信</td><td class="ng">12件が未返信</td><td>下の返信文案を使用</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>3. 店舗説明文の案</h2>
+    <div class="card">
+      <p>駅から徒歩5分、木のぬくもりのある小さなカフェです。日替わりランチ（数量限定）と自家焙煎のコーヒーをご用意しています。ランチはテイクアウトもできます。おひとりでも、お子さま連れでもどうぞ。</p>
+      <p class="small">英語版：A small, cozy café five minutes from the station. We serve a daily lunch special (limited quantity) and house-roasted coffee. Lunch is also available for takeout.</p>
+      <p class="small">※ 「駅から徒歩5分」「自家焙煎」などの事実は、実際のお店に合わせて確認・修正してください。</p>
+    </div>
+
+    <h2>4. 口コミ返信文の案（2件抜粋）</h2>
+    <div class="card">
+      <blockquote>★5「ランチのスープがおいしかった」（架空の口コミ）</blockquote>
+      <p>ご来店ありがとうございます。スープは毎朝仕込んでいるので、そう言っていただけてうれしいです。季節ごとに内容が変わりますので、またお立ち寄りください。</p>
+      <blockquote>★2「提供まで30分以上待った」（架空の口コミ）</blockquote>
+      <p>ご来店いただいたのに、長くお待たせしてしまい申し訳ありません。ご指摘を受けて、混雑時のご案内の仕方を見直しています。またお越しいただけた際には、より快適にお過ごしいただけるよう努めます。</p>
+      <p class="small">返信方針：言い訳や反論はせず、具体的な改善内容は事実にもとづくものだけを書きます。</p>
+    </div>
+
+    <p class="small" style="margin-top:32px"><a href="../gbp/">Googleマップ整備パックのページへ戻る</a></p>
+  </main>
+</body>
+</html>

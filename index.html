@@ -1,101 +1,46 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Content Studio | 小規模事業者の発信を効率化</title>
-  <meta name="description" content="小規模事業者のSNSコンテンツ制作を効率化するサービス。">
+  <meta name="description" content="ジム・整体院など小規模事業者向け。SNS投稿の企画、投稿文、短尺動画台本をまとめて準備するサービス。">
+  <title>AI Content Studio | SNS発信を続けやすく</title>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans",
-        "Yu Gothic", sans-serif;
-      color: #172033;
-      background: #f7f8fc;
-      line-height: 1.8;
-    }
-    header {
-      padding: 22px 7%;
-      background: #fff;
-      border-bottom: 1px solid #e8eaf0;
-      font-weight: 700;
-    }
-    main {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 70px 24px;
-    }
-    .label {
-      color: #3157d5;
-      font-weight: 700;
-      letter-spacing: .08em;
-    }
-    h1 {
-      font-size: clamp(32px, 6vw, 54px);
-      line-height: 1.35;
-      margin: 16px 0;
-    }
-    .lead { font-size: 18px; color: #525d72; }
-    .panel {
-      background: #fff;
-      padding: 28px;
-      border-radius: 18px;
-      margin-top: 32px;
-      border: 1px solid #e5e8f0;
-    }
-    h2 { font-size: 23px; }
-    .button {
-      display: inline-block;
-      background: #3157d5;
-      color: white;
-      text-decoration: none;
-      padding: 13px 22px;
-      border-radius: 9px;
-      font-weight: 700;
-      margin-top: 12px;
-    }
-    footer {
-      text-align: center;
-      padding: 24px;
-      color: #687187;
-      font-size: 13px;
-    }
+    :root { --ink:#162033; --muted:#596579; --brand:#2455d6; --line:#e3e8f1; --paper:#f6f8fc; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.8; }
+    header { background:#fff; border-bottom:1px solid var(--line); padding:18px 6%; font-weight:800; }
+    main { max-width:960px; margin:auto; padding:54px 22px 72px; }
+    .eyebrow { color:var(--brand); font-weight:800; letter-spacing:.08em; font-size:13px; }
+    h1 { font-size:clamp(34px,6vw,58px); line-height:1.25; margin:12px 0 18px; letter-spacing:-.04em; }
+    h2 { font-size:clamp(22px,3vw,30px); line-height:1.4; }
+    .lead { color:var(--muted); font-size:18px; max-width:720px; }
+    .cta { display:inline-block; margin-top:18px; background:var(--brand); color:#fff; text-decoration:none; font-weight:800; padding:13px 20px; border-radius:10px; }
+    .notice { color:var(--muted); font-size:13px; margin-top:10px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:28px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px; }
+    .price { font-size:32px; font-weight:900; letter-spacing:-.03em; }
+    .tag { display:inline-block; padding:3px 9px; border-radius:999px; background:#edf2ff; color:#2448a8; font-size:12px; font-weight:800; }
+    ul { padding-left:1.2em; }
+    .section { margin-top:48px; }
+    .small { font-size:13px; color:var(--muted); }
+    footer { border-top:1px solid var(--line); padding:24px; text-align:center; color:var(--muted); font-size:13px; background:#fff; }
   </style>
 </head>
 <body>
   <header>AI Content Studio</header>
   <main>
-    <p class="label">FOR SMALL BUSINESSES</p>
-    <h1>毎日の発信を、<br>もっと効率的に。</h1>
-    <p class="lead">
-      ジム・整体院・美容サロンなどの小規模事業者向けに、
-      SNS投稿の企画や文章作成を効率化するサービスを準備しています。
-    </p>
-
-    <section class="panel">
-      <h2>提供を予定しているサービス</h2>
-      <ul>
-        <li>SNS投稿テーマと投稿計画の作成</li>
-        <li>投稿文・ショート動画台本の作成</li>
-        <li>継続的なコンテンツ制作の効率化</li>
-      </ul>
-      <p>
-        現在、サービス内容と価格を検証中です。
-        販売開始前に、必要とされる機能を調査しています。
-      </p>
+    <p class="eyebrow">FOR GYMS · SALONS · LOCAL BUSINESSES</p>
+    <h1>SNS投稿を考える時間を、<br>お客様と向き合う時間へ。</h1>
+    <p class="lead">ジム・整体院・美容サロンなどの小規模事業者向けに、投稿カレンダー、投稿文、短尺動画台本をひとまとめに。毎回ゼロから考える負担を減らします。</p>
+    <span class="tag">初回テスト商品</span>
+    <section class="grid" aria-label="サービス内容">
+      <article class="card"><h2>投稿14日分パック</h2><p class="price">9,800円</p><p class="small">価格はテスト販売用の仮設定です。正式な提供条件は問い合わせ前に確認します。</p><ul><li>14日分の投稿カレンダー</li><li>投稿文14本</li><li>短尺動画台本4本</li><li>CTA・ハッシュタグ案</li></ul></article>
+      <article class="card"><h2>月間コンテンツパック</h2><p class="price">19,800円<span style="font-size:14px"> / 月</span></p><p class="small">継続商品案。初回パックの需要確認後に提供条件を確定します。</p><ul><li>月間投稿カレンダー</li><li>投稿文・動画台本</li><li>月次振り返りテンプレート</li><li>次月の改善案</li></ul></article>
     </section>
-
-    <section class="panel">
-      <h2>事業者向けサービス</h2>
-      <p>
-        サービスの内容や導入方法については、
-        正式な提供条件が決まり次第ご案内します。
-      </p>
-      <p>※ 現時点では購入・決済を受け付けていません。</p>
-    </section>
+    <section class="section card"><h2>成果を誇張せず、使える素材を納品します</h2><p>フォロワー数、予約数、売上の増加を保証するサービスではありません。業種や顧客層に合わせた投稿案を作成し、事実確認しやすい形でお渡しします。健康・医療に関する表現は特に慎重に確認します。</p></section>
+    <section class="section card" id="contact"><h2>問い合わせ・申込み</h2><p>このページは販売準備用の試作です。公開・販売開始前に、運営者情報、問い合わせ先、決済方法、利用規約、返金条件、特定商取引法に基づく表記等の必要事項を設定します。</p><p class="small">現時点では、このページから購入・決済はできません。未設定の連絡先や架空の実績は掲載していません。</p></section>
   </main>
-  <footer>AI Content Studio</footer>
+  <footer>AI Content Studio · 販売条件の確定前の試作ページ · <a href="gbp/" style="color:inherit">Googleマップ整備パック</a></footer>
 </body>
 </html>

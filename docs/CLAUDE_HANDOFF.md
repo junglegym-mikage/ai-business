@@ -2,7 +2,7 @@
 
 - 日時：2026-10-22 21:30頃（JST）
 - ブランチ：`claude/validation-pack-2026-10-22`（ローカルのみ。ベースは`main` f4028f7）
-- **GitHubへのpushは不可**：このセッションには書き込み権限がない（Claude GitHub Appが未インストール）。変更はZIPでオーナーへ渡す。
+- **GitHubへのpushは不可**：2026-10-22にpushを試して HTTP 403（Claude GitHub App未インストール）。変更はZIPとパッチでオーナーへ渡す。
 
 ## 1. 既存リポジトリの監査結果
 - 中身は`README.md`（2行）と`index.html`（「準備中」の告知ページ）だけ。コミットは2件（2026-10-21）。

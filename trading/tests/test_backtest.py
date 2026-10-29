@@ -246,6 +246,12 @@ def test_final_mode_end_to_end_runs_once_and_checks_hashes(tmp_path):
     dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "config", "src"], capture_output=True, text=True)
     if head.returncode != 0 or dirty.stdout.strip():
         pytest.skip("コミット済みのクリーンな作業ツリーでのみ実行（CI）")
+    if json.loads((root / "config" / "preregistration.json").read_text(encoding="utf-8")).get("holdout_result"):
+        (tmp_path / "data").mkdir()
+        r = _run_final(tmp_path, root / "config" / "paper.json", head.stdout.strip())
+        assert r.returncode != 0 and "評価済み" in r.stderr  # 使用済みのホールドアウトは新しい出力先でも開けない
+        assert not (tmp_path / "holdout.lock").exists()
+        return
     (tmp_path / "data").mkdir()
     cfg = root / "config" / "paper.json"
     r1 = _run_final(tmp_path, cfg, head.stdout.strip())

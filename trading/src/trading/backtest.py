@@ -239,6 +239,8 @@ def main() -> None:
     pre = json.loads(a.prereg.read_text(encoding="utf-8"))
     holdout = dt.date.fromisoformat(pre["holdout_start"])
     if a.final:
+        if pre.get("holdout_result"):
+            raise SystemExit(f"ホールドアウトは評価済み（{pre['holdout_result']}）。再利用しない")
         verify_preregistration(a.prereg, a.prereg_commit)
         import hashlib
 

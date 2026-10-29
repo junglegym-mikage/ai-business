@@ -32,7 +32,7 @@
     "halves_required": false,
     "_note": "ホールドアウトは約2年で取引数が少ないため、取引10回以上とし、前後半の安定性は判定に使わない（記録のみ）。ルール違反は0回であること。"
   },
-  "code_sha256": "3c47907a4fb7f131aab64a97f8826593380ad9fddbf9ae3af322fa90ec84b9cc",
+  "code_sha256": "2fa39bf7d1dc3e1d9cdbc91c6aa46ee42953c52a9c718252c354bd11bc473dc1",
   "_code_note": "code_sha256 = src/trading/*.py のハッシュ（backtest.code_sha256）。コードを変えたらホールドアウトは開けない",
   "holdout_result": "2026-10-29 評価済み：JP 不合格（PF 1.08）。再利用不可",
   "forward_test": {

@@ -16,6 +16,6 @@ python -m pytest
 3. GitHub Actions（trading-ci）が自動テストし、結果を PR にコメント
 4. ChatGPT（Codex）が PR を独立レビュー
 5. Claude が指摘を検証・修正し、再テスト結果が PR に記録される
-6. オーナーが確認してマージ（Claude はマージしない）
+6. 指摘なし（Codex 👍／ChatGPT「マージ可」）＋CI成功なら `trading/develop` へマージ（オーナーの委任で Claude が実施。main へはオーナーのみ）
 
 詳しくは `docs/trading/collaboration.md`。

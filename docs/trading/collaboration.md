@@ -6,7 +6,7 @@
 3. **GitHub Actions（trading-ci）** がテストと認証情報スキャンを実行し、結果を PR にコメント
 4. **ChatGPT** が PR を独立レビュー（下の A〜C のどれか）
 5. **Claude** が指摘を検証して修正 → CI が再テストして PR に記録
-6. ChatGPT が「マージ可」→ **オーナー**が確認してマージ（Claude はマージしない）
+6. 指摘なし（Codex 👍 か ChatGPT「マージ可」）→ `trading/develop` へマージ（オーナーの委任により Claude が実施。main へはオーナーのみ）
 
 実績：PR #2 でこの流れを 4 往復実施し、最終判定「マージ可」まで確認済み（レビュー記録は PR #2 のコメント）。
 
@@ -58,3 +58,9 @@ API キー（`ANTHROPIC_API_KEY`）方式は従量課金になるため、承認
 - API キー等は GitHub の Secrets にだけ置く（CI が認証情報スキャンを実行）
 - 有料サービスはオーナーの承認なしに使わない
 - 詳細は `CLAUDE.md`（実装側）と `AGENTS.md`（レビュー側）
+
+## 現在の運用状況（2026-10-29 時点）
+- ブランチ保護：`trading/develop` は PR 必須・CI（test）成功必須（設定済み）
+- Codex：ChatGPT Codex Connector を ai-business のみに接続済み。PR に `@codex review` とコメントするとレビューが付く（PR #5・#6 で確認）
+- ペーパートレード：`trading/paper-state` ブランチで毎営業日（火〜土 7:42 JST）に Claude の予定タスクが実行を起動し、結果を `state/` に記録
+- Claude Code GitHub Actions（@claude）：トークン入力が必要なため未設定。予定タスク方式で代替

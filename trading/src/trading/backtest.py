@@ -182,6 +182,28 @@ def evaluate_market(cfg: dict, market: str, data_dir: pathlib.Path, start: dt.da
     return m
 
 
+def code_sha256(src_dir: pathlib.Path) -> str:
+    """売買・約定・検証ロジック（src/trading/*.py）をまとめたハッシュ。ファイル名順に名前と中身を連結する。"""
+    import hashlib
+
+    h = hashlib.sha256()
+    for f in sorted(src_dir.glob("*.py")):
+        h.update(f.name.encode())
+        h.update(b"\0")
+        h.update(f.read_bytes())
+        h.update(b"\0")
+    return h.hexdigest()
+
+
+def acquire_holdout_lock(lock: pathlib.Path) -> None:
+    """ホールドアウトの評価は1回限り。ロックが既にあれば止め、なければ評価の前に作る（失敗しても残す）。"""
+    if lock.exists():
+        raise SystemExit(f"ホールドアウトは既に評価（または評価を開始）済み: {lock.read_text(encoding='utf-8').strip()}")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    with lock.open("x", encoding="utf-8") as fh:  # 同時実行でも片方だけが作成できる
+        fh.write(f"started {dt.datetime.now(dt.timezone.utc).isoformat()}\n")
+
+
 def verify_preregistration(prereg_path: pathlib.Path, commit: str) -> None:
     """指定コミットが実在し、その時点の事前登録ファイルが今読むファイルと完全に一致することを確かめる。"""
     if len(commit) < 7:
@@ -220,6 +242,10 @@ def main() -> None:
 
         if hashlib.sha256(a.config.read_bytes()).hexdigest() != pre.get("strategy_config_sha256"):
             raise SystemExit("売買ルールの設定ファイルが事前登録時と異なる。ホールドアウトは開けない")
+        src = pathlib.Path(__file__).resolve().parent
+        if code_sha256(src) != pre.get("code_sha256"):
+            raise SystemExit("売買・約定・検証のコードが事前登録時と異なる。ホールドアウトは開けない")
+        acquire_holdout_lock(a.out / "holdout.lock")
         start, end, label = holdout, dt.date.today(), "holdout"
     else:
         start = dt.date.fromisoformat(pre["development_period"]["start"])

@@ -31,5 +31,7 @@
     "max_drawdown_pct_max": 10,
     "halves_required": false,
     "_note": "ホールドアウトは約2年で取引数が少ないため、取引10回以上とし、前後半の安定性は判定に使わない（記録のみ）。ルール違反は0回であること。"
-  }
+  },
+  "code_sha256": "df846ace5abc45c749476bd3f9cfaf852f0b3a4e72129425b11ce66729d4357d",
+  "_code_note": "code_sha256 = src/trading/*.py のハッシュ（backtest.code_sha256）。コードを変えたらホールドアウトは開けない"
 }

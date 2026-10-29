@@ -2,7 +2,8 @@ name: backtest
 
 # 過去データ検証の実行。trading/backtest-runs ブランチの .github/workflows/ に置いて使う（原本は trading/ops/）。
 # 起動：trading/backtest-runs への push。request.txt の1行目に検証するコードのブランチ名を書く。
-# 結果（results/）は同じブランチに GITHUB_TOKEN でコミットする。2行目が final のときだけ、事前登録どおりにホールドアウトを1回だけ評価する（2回目はエラー）。
+# 結果（results/）は同じブランチに GITHUB_TOKEN でコミットする。2行目が final のときだけ、事前登録どおりにホールドアウトを1回だけ評価する。
+# 1回限りは backtest.py の holdout.lock（評価前に作成）で担保し、失敗しても結果コミットは always で行うためロックは残る。
 
 on:
   push:
@@ -54,10 +55,10 @@ jobs:
         if: steps.req.outputs.mode == 'final'
         working-directory: code/trading
         run: |
-          test ! -f ../../runs/results/report_holdout.md || { echo "::error::ホールドアウトは評価済み。再評価はしない"; exit 1; }
           python -m trading.backtest --config config/paper.json --prereg config/preregistration.json --data ../../data --out ../../runs/results --final --prereg-commit "$(git rev-parse HEAD)"
           cat ../../runs/results/report_holdout.md >> "$GITHUB_STEP_SUMMARY"
       - name: Commit results
+        if: always()
         working-directory: runs
         run: |
           git config user.name "backtest-bot"

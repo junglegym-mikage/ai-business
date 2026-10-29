@@ -196,3 +196,30 @@ def test_holdout_criteria_skip_halves_and_require_no_violations():
     crit = {"min_trades": 10, "expectancy_after_costs_jpy_gt": 0, "profit_factor_min": 1.2, "max_drawdown_pct_max": 10, "halves_required": False}
     assert judge(m, crit)["pass"]
     assert not judge({**m, "rule_violations": 1}, crit)["pass"]
+
+
+def test_preregistration_pins_current_code():
+    from trading.backtest import code_sha256
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    pre = json.loads((root / "config" / "preregistration.json").read_text(encoding="utf-8"))
+    assert pre["code_sha256"] == code_sha256(root / "src" / "trading")
+
+
+def test_code_hash_changes_when_code_changes(tmp_path):
+    from trading.backtest import code_sha256
+
+    (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
+    h1 = code_sha256(tmp_path)
+    (tmp_path / "a.py").write_text("x = 2\n", encoding="utf-8")
+    assert code_sha256(tmp_path) != h1
+
+
+def test_holdout_lock_allows_only_one_attempt(tmp_path):
+    from trading.backtest import acquire_holdout_lock
+
+    lock = tmp_path / "results" / "holdout.lock"
+    acquire_holdout_lock(lock)
+    assert lock.exists()
+    with pytest.raises(SystemExit):
+        acquire_holdout_lock(lock)  # 失敗後の再実行・2回目も拒否

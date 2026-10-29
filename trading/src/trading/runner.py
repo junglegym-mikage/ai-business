@@ -92,6 +92,13 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
     missing = [i.symbol for i in instruments if i.symbol not in history]
     for m in missing:
         broker._event("data_missing", m, "データファイルがない")
+    stale = _stale_held_symbols(broker, history)
+    if stale:
+        # 保有銘柄のデータが欠けたまま日付を進めると、損切り判定も評価もされない建玉が残る。
+        # 日付を進めずに中断し、次回の実行で再取得されたデータから処理する。
+        broker._event("run_aborted", ",".join(stale), "保有銘柄のデータ欠損・遅れのため今回は処理しない")
+        _write_outputs(broker, state_dir, [], cfg)
+        return broker
 
     after = broker.last_date or (start - dt.timedelta(days=1))
     days = sorted({b.date for bars in history.values() for b in bars if b.date > after and b.date >= start})
@@ -121,6 +128,19 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
 
     _write_outputs(broker, state_dir, equity_rows, cfg)
     return broker
+
+
+def _stale_held_symbols(broker: PaperBroker, history: dict) -> list[str]:
+    """保有中なのにデータファイルがない、または最新足が他銘柄より5日以上古い銘柄。"""
+    latest_all = max((bars[-1].date for bars in history.values() if bars), default=None)
+    stale = []
+    for s in broker.instruments:
+        if not broker.risk.position(s).quantity or s in broker.frozen:
+            continue
+        bars = history.get(s)
+        if not bars or latest_all is None or (latest_all - bars[-1].date).days >= 5:
+            stale.append(s)
+    return stale
 
 
 def _fx_before(fx_bars: list[Bar], day: dt.date) -> Decimal | None:

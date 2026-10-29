@@ -185,3 +185,25 @@ def test_split_event_freezes_held_symbol_even_if_prices_are_back_adjusted(tmp_pa
         w.writerow({"date": nxt.isoformat(), "numerator": 2, "denominator": 1})
     b2 = run(cfg, data, tmp_path / "state")
     assert "1306.T" in b2.frozen and "分割" in b2.halted
+
+
+def test_missing_data_for_held_symbol_aborts_without_advancing(tmp_path):
+    data, dates = make_data(tmp_path, 230)
+    cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
+    cfg["universe"].append({"symbol": "SPLG", "currency": "USD"})
+    p = tmp_path / "cfg2.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    write_csv(data / "SPLG.csv", [{**r, "open": 50, "high": 50, "low": 50, "close": 50} for r in rows])
+    b = run(p, data, tmp_path / "state")
+    assert b.risk.position("1306.T").quantity > 0
+    last = b.last_date
+    # 次の実行で保有銘柄（1306.T）のファイルが取得できなかった
+    (data / "1306.T.csv").unlink()
+    nxt = dates[-1] + dt.timedelta(days=1 if dates[-1].weekday() < 4 else 3)
+    srows = list(csv.DictReader((data / "SPLG.csv").open(encoding="utf-8")))
+    srows.append({**srows[-1], "date": nxt.isoformat()})
+    write_csv(data / "SPLG.csv", srows)
+    b2 = run(p, data, tmp_path / "state")
+    assert b2.last_date == last  # 日付を進めない
+    assert any(e.kind == "run_aborted" and "1306.T" in e.symbol for e in b2.events)

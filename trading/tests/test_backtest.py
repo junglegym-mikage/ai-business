@@ -108,3 +108,41 @@ def test_final_requires_matching_committed_preregistration(tmp_path):
     f.write_text('{"a": 2}\n', encoding="utf-8")
     with pytest.raises(SystemExit):
         verify_preregistration(f, sha)  # 登録後に変更
+
+
+def _synthetic(tmp_path, n=300, gap_rows=()):
+    data = tmp_path / "data"
+    data.mkdir(exist_ok=True)
+    rows, d, i = [], dt.date(2020, 1, 1), 0
+    while len(rows) < n:
+        if d.weekday() < 5:
+            c = 1000 + i * 2
+            rows.append({"date": d.isoformat(), "open": c, "high": c + 5, "low": c - 5, "close": c, "adj_close": c})
+            i += 1
+        d += dt.timedelta(days=1)
+    cfg = json.loads((pathlib.Path(__file__).resolve().parents[1] / "config" / "paper.json").read_text(encoding="utf-8"))
+    cfg["universe"] = [{"symbol": "1306.T", "currency": "JPY", "market": "JP"},
+                       {"symbol": "1475.T", "currency": "JPY", "market": "JP"}]
+    for name, rr in (("1306.T.csv", [r for k, r in enumerate(rows) if k not in gap_rows]),
+                     ("1475.T.csv", [{**r, "open": 300, "high": 300, "low": 300, "close": 300, "adj_close": 300} for r in rows])):
+        with (data / name).open("w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+            w.writeheader()
+            w.writerows(rr)
+    return cfg, data, rows
+
+
+def test_equity_and_trip_pnl_are_consistent_with_open_position(tmp_path):
+    cfg, data, rows = _synthetic(tmp_path)
+    m = evaluate_market(cfg, "JP", data, dt.date.fromisoformat(rows[210]["date"]), dt.date.fromisoformat(rows[-1]["date"]), tmp_path / "w")
+    assert m["open_at_end"] == ["1306.T"]  # 右肩上がりなので期末に保有が残る
+    assert "invalid" not in m
+    assert m["consistency_diff_jpy"] <= 30  # 差は想定決済コスト程度
+
+
+def test_many_data_gaps_invalidate_market(tmp_path):
+    cfg, data, rows = _synthetic(tmp_path, gap_rows=range(240, 250))
+    m = evaluate_market(cfg, "JP", data, dt.date.fromisoformat(rows[210]["date"]), dt.date.fromisoformat(rows[-1]["date"]), tmp_path / "w")
+    assert m["data_gaps"] > 5
+    j = judge(m, CRIT)
+    assert not j["pass"] and "欠損日" in j["invalid"]

@@ -154,10 +154,26 @@ def evaluate_market(cfg: dict, market: str, data_dir: pathlib.Path, start: dt.da
     m = metrics(trips, equity, Decimal(cfg["risk"]["capital_jpy"]))
     m["symbols"] = [u["symbol"] for u in universe]
     m["open_at_end"] = sorted(marks)
-    if missing:
-        m["invalid"] = f"データ欠損: {', '.join(missing)}"
+
     m["halted"] = broker.halted
     m["events"] = {k: sum(1 for e in broker.events if e.kind == k) for k in sorted({e.kind for e in broker.events})}
+    m["halts"] = m["events"].get("halted", 0)
+    m["rule_violations"] = m["events"].get("rule_violation", 0)
+    m["data_gaps"] = m["events"].get("data_gap", 0)
+    # 整合性：評価額の増減（含み損益込み）と往復損益の合計の差は、未決済分の想定決済コスト以内のはず
+    capital = Decimal(cfg["risk"]["capital_jpy"])
+    exit_cost = sum((abs(q) * mk * Decimal(cfg["risk"]["est_cost_rate"]) for q, _, mk in marks.values()), Decimal(0))
+    diff = abs((Decimal(str(m["final_equity_jpy"])) - capital) - Decimal(str(m["net_pnl_jpy"])))
+    m["consistency_diff_jpy"] = float(diff)
+    problems = []
+    if missing:
+        problems.append(f"データ欠損: {', '.join(missing)}")
+    if m["data_gaps"] > 5:
+        problems.append(f"保有中の欠損日が多い（{m['data_gaps']}日）")
+    if diff > exit_cost + 1:
+        problems.append(f"評価額と損益集計が不整合（差 {diff:.0f} 円）")
+    if problems:
+        m["invalid"] = "／".join(problems)
     shutil.copy(state / "trades.csv", work / f"trades_{market}.csv")
     return m
 
@@ -223,7 +239,9 @@ def main() -> None:
                   f"- 取引 {m['trades']} 回、勝率 {m['win_rate_pct']}%、期待値 {m['expectancy_jpy']:+.0f} 円/回、PF {m['profit_factor']}",
                   f"- 損益合計 {m['net_pnl_jpy']:+.0f} 円、最終評価額 {m['final_equity_jpy']:.0f} 円、最大DD {m['max_drawdown_pct']}%",
                   f"- 前半/後半の期待値 {m['expectancy_first_half_jpy']:+.0f} / {m['expectancy_second_half_jpy']:+.0f} 円",
-                  f"- 停止: {m['halted'] or 'なし'}、イベント: {m['events']}", "", "| 年 | 取引 | 損益(円) |", "|---|---|---|"]
+                  f"- 停止 {m['halts']} 回（うちルール違反 {m['rule_violations']} 回。検証では翌営業日に自動解除）、保有中の欠損日 {m['data_gaps']} 日、評価額と損益の差 {m['consistency_diff_jpy']:.0f} 円",
+                  f"- 無効理由: {j.get('invalid')}" if j.get("invalid") else "- データ: 有効",
+                  f"- イベント: {m['events']}", "", "| 年 | 取引 | 損益(円) |", "|---|---|---|"]
         lines += [f"| {y} | {v['trades']} | {v['net_pnl_jpy']:+.0f} |" for y, v in m["by_year"].items()]
         lines.append("")
     lines += ["再現: `python -m trading.backtest --config config/paper.json --prereg config/preregistration.json --data <data> --out <out>`",

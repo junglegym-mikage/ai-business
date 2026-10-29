@@ -223,3 +223,42 @@ def test_holdout_lock_allows_only_one_attempt(tmp_path):
     assert lock.exists()
     with pytest.raises(SystemExit):
         acquire_holdout_lock(lock)  # 失敗後の再実行・2回目も拒否
+
+
+def _run_final(out, config, commit):
+    import subprocess
+    import sys
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    return subprocess.run(
+        [sys.executable, "-m", "trading.backtest", "--config", str(config), "--prereg", str(root / "config" / "preregistration.json"),
+         "--data", str(out / "data"), "--out", str(out), "--final", "--prereg-commit", commit],
+        cwd=root, capture_output=True, text=True, env={**__import__("os").environ, "PYTHONPATH": str(root / "src")},
+    )
+
+
+def test_final_mode_end_to_end_runs_once_and_checks_hashes(tmp_path):
+    """実際の --final：事前登録コミット・設定ハッシュ・コードハッシュを照合し、1回目は実行、2回目は拒否。"""
+    import subprocess
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True)
+    dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "config", "src"], capture_output=True, text=True)
+    if head.returncode != 0 or dirty.stdout.strip():
+        pytest.skip("コミット済みのクリーンな作業ツリーでのみ実行（CI）")
+    (tmp_path / "data").mkdir()
+    cfg = root / "config" / "paper.json"
+    r1 = _run_final(tmp_path, cfg, head.stdout.strip())
+    assert r1.returncode == 0, r1.stderr
+    assert (tmp_path / "holdout.lock").exists() and (tmp_path / "report_holdout.md").exists()
+    r2 = _run_final(tmp_path, cfg, head.stdout.strip())
+    assert r2.returncode != 0 and "既に評価" in r2.stderr
+    # 設定を変えたコピーでは開けない
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "data").mkdir()
+    changed = tmp_path / "changed.json"
+    changed.write_text(cfg.read_text(encoding="utf-8").replace('"300"', '"301"'), encoding="utf-8")
+    r3 = _run_final(other, changed, head.stdout.strip())
+    assert r3.returncode != 0 and "設定ファイル" in r3.stderr
+    assert not (other / "holdout.lock").exists()  # 照合に失敗したらロックも作らない

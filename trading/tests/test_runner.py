@@ -97,3 +97,38 @@ def test_incremental_run_matches_single_run(tmp_path):
     inc = run(cfg, part, tmp_path / "inc")
     assert inc.trades == one.trades
     assert inc.cash == one.cash
+
+
+def test_fills_use_unadjusted_prices_and_signals_use_adjusted(tmp_path):
+    data, dates = make_data(tmp_path, 230)
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    # 調整済み終値を常に 1% 低くする（配当調整を模擬）。未調整の値動きは同じ
+    for r in rows:
+        r["adj_close"] = f"{float(r['close']) * 0.99:.6f}"
+    with (data / "1306.T.csv").open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["date", "open", "high", "low", "close", "adj_close"])
+        w.writeheader()
+        w.writerows(rows)
+    cfg = cfg_from(tmp_path, dates[210])
+    b = run(cfg, data, tmp_path / "state")
+    first = b.trades[0]
+    raw_open = [r for r in rows if r["date"] == first["date"]][0]["open"]
+    from decimal import Decimal as D
+    assert D(first["price"]) == (D(raw_open) * D("1.0005")).quantize(D("0.0001"))
+
+
+def test_split_like_divergence_halts_when_holding(tmp_path):
+    data, dates = make_data(tmp_path, 230)
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    for r in rows:
+        r["adj_close"] = r["close"]
+    # 最後の日だけ未調整価格が半分（2分割を模擬）、調整済みは連続
+    for k in ("open", "high", "low", "close"):
+        rows[-1][k] = f"{float(rows[-1][k]) / 2:.6f}"
+    with (data / "1306.T.csv").open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["date", "open", "high", "low", "close", "adj_close"])
+        w.writeheader()
+        w.writerows(rows)
+    cfg = cfg_from(tmp_path, dates[210])
+    b = run(cfg, data, tmp_path / "state")
+    assert "企業行動" in b.halted

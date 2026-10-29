@@ -1,7 +1,7 @@
 """日足データの取得（GitHub Actions 上で実行。通信するのはこのツールだけ）。
 
-Yahoo Finance のチャート API（公開・無料・非公式）から日足を取り、分割・配当調整済みの
-OHLC を CSV に保存する。調整は 調整後終値 ÷ 終値 の比率を始値・高値・安値にも掛ける。
+Yahoo Finance のチャート API（公開・無料・非公式）から日足を取り、未調整の OHLC（実際に約定できる価格）と
+分割・配当調整済み終値（adj_close）を CSV に保存する。約定には未調整、売買判定には調整済みを使う。
 認証情報は使わない。取得に失敗した銘柄は記録して続行する（ランナー側で data_missing として扱う）。
 
 制約（レポートに明記すること）：無料・非公式データのため欠損や遅延があり得る。上場廃止銘柄は含まれない。
@@ -38,10 +38,9 @@ def fetch(symbol: str, rng: str) -> list[dict]:
         o, h, l, c, a = q["open"][i], q["high"][i], q["low"][i], q["close"][i], adj[i]
         if None in (o, h, l, c, a) or c <= 0:
             continue
-        f = a / c
         day = dt.datetime.fromtimestamp(t + offset, dt.timezone.utc).date()
-        rows.append({"date": day.isoformat(), "open": f"{o * f:.6f}", "high": f"{h * f:.6f}",
-                     "low": f"{l * f:.6f}", "close": f"{a:.6f}"})
+        rows.append({"date": day.isoformat(), "open": f"{o:.6f}", "high": f"{h:.6f}",
+                     "low": f"{l:.6f}", "close": f"{c:.6f}", "adj_close": f"{a:.6f}"})
     # 同じ日付が複数あれば最後を採用
     dedup = {r["date"]: r for r in rows}
     return [dedup[d] for d in sorted(dedup)]
@@ -63,7 +62,7 @@ def main() -> int:
             if not rows:
                 raise ValueError("データが空")
             with (a.out / f"{name}.csv").open("w", newline="", encoding="utf-8") as fh:
-                w = csv.DictWriter(fh, fieldnames=["date", "open", "high", "low", "close"])
+                w = csv.DictWriter(fh, fieldnames=["date", "open", "high", "low", "close", "adj_close"])
                 w.writeheader()
                 w.writerows(rows)
             print(f"{name}: {len(rows)} 行（{rows[0]['date']} 〜 {rows[-1]['date']}）")

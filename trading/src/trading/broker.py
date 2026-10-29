@@ -9,7 +9,10 @@
 - 保有中の損切りは、日中の安値（空売りは高値）が損切り価格に届いたら損切り価格で約定。
   ただし始値の時点で損切り価格を飛び越えていたら（窓開け）、始値で約定する。
 - 約定価格にはスリッページ（不利な方向）を加え、約定代金に手数料率を掛けたコストを日次損益から引く。
-- 米国株は円換算して RiskManager に渡す。損切りの円換算には為替の不利な変動幅（fx_buffer）を見込む。
+- 米国株は円換算して RiskManager に渡す。始値約定・損切りは「その時点で分かっている為替」（前営業日の終値）、
+  評価は当日の終値の為替で換算する。損切りの円換算には為替の不利な変動幅（fx_buffer）を見込む。
+- 約定・損切り・損益は未調整の実際の価格で計算する（調整済み価格は売買判定にだけ使う）。
+- 1 トレードの実損失は、価格差＋決済コスト＋そのポジションのエントリーコスト（按分）で判定する。
 
 停止（halt）条件：日次損失上限に 2 営業日連続で到達／損失管理ルール違反（窓開けで 1 トレード上限を超過など）。
 停止中は新規・買い増しを受け付けない（決済は受け付ける）。解除はオーナーが `resume()` で行う。
@@ -95,6 +98,7 @@ class PaperBroker:
         self.halted: str = ""
         self.limit_hit_streak = 0
         self.last_date: dt.date | None = None
+        self.entry_costs: dict[str, Decimal] = {}  # 保有ポジションにかかったエントリーコスト（円）
 
     # ------------------------------------------------------------------ 入口
     def submit(self, order: PendingOrder, fx: Decimal = Decimal(1)) -> tuple[bool, str]:
@@ -119,15 +123,23 @@ class PaperBroker:
         self._event("accepted", order.symbol, f"{order.side} {order.quantity} ({order.reason})")
         return True, ""
 
+    def halt(self, day: dt.date, reason: str) -> None:
+        """外部の安全判定（企業行動の検出など）で停止する。"""
+        self._halt(day, reason)
+
     def resume(self) -> None:
         """停止を解除する（オーナーの判断でのみ呼ぶ）。"""
         self.halted = ""
         self.limit_hit_streak = 0
 
     # ------------------------------------------------------------- 日次処理
-    def process_day(self, day: dt.date, bars: dict[str, Bar], fx: Decimal) -> None:
-        """1 営業日分の足を処理する：①日付更新 ②始値で待機注文を約定 ③損切り判定 ④評価更新 ⑤停止判定。"""
+    def process_day(self, day: dt.date, bars: dict[str, Bar], fx: Decimal, fx_close: Decimal | None = None) -> None:
+        """1 営業日分の足（未調整）を処理する：①前日の締め ②始値で待機注文を約定 ③損切り判定 ④評価更新。
+
+        fx は約定時点で分かっている為替（前営業日の終値など）、fx_close は評価用の当日終値（省略時は fx）。
+        """
         assert_paper_mode()
+        fx_close = fx if fx_close is None else fx_close
         if self.last_date is not None and day <= self.last_date:
             raise ValueError(f"日付が進んでいない: {day} <= {self.last_date}")
         if self.last_date is not None:
@@ -150,7 +162,7 @@ class PaperBroker:
 
         for symbol, bar in bars.items():
             if self.risk.position(symbol).quantity:
-                self.risk.update_mark(symbol, self._jpy(symbol, bar.close, fx))
+                self.risk.update_mark(symbol, self._jpy(symbol, bar.close, fx_close))
 
 
     def _close_day(self, day: dt.date) -> None:
@@ -194,12 +206,18 @@ class PaperBroker:
         if not decision.accepted:
             return self._event("cancelled", order.symbol, f"約定時のリスク判定で拒否: {decision.reason}", day)
 
+        trade_loss = ZERO if increasing else (pos.avg_price - price_jpy) * order.quantity * (1 if pos.quantity > 0 else -1)
+        prev_qty = abs(pos.quantity)
         realized = self.risk.record_fill(risk_order)
         cost = self._cost(notional)
         self.risk.record_cost(cost)
         self.cash += -notional - cost if order.side == "buy" else notional - cost
         self._event("filled", order.symbol, f"{order.side} {order.quantity} @ {price:.4f} ({order.reason})", day)
         self._log_trade(day, order.symbol, order.side, order.quantity, price, price_jpy, cost, realized, order.reason)
+        if increasing:
+            self.entry_costs[order.symbol] = self.entry_costs.get(order.symbol, ZERO) + cost
+        else:
+            self._check_close_loss(day, order.symbol, order.quantity, prev_qty, trade_loss, cost, "exit")
 
         new_qty = self.risk.position(order.symbol).quantity
         if new_qty == 0:
@@ -221,6 +239,7 @@ class PaperBroker:
         price_jpy = self._jpy(symbol, price, fx)
         pos = self.risk.position(symbol)
         trade_loss = (pos.avg_price - price_jpy) * pos.quantity  # 買い: 正の数量
+        prev_qty = abs(pos.quantity)
         risk_order = Order(symbol, stop.side, stop.quantity, price_jpy)
         realized = self.risk.record_fill(risk_order)
         notional = price_jpy * stop.quantity
@@ -231,9 +250,22 @@ class PaperBroker:
         kind = "stop_gap" if gapped else "stop"
         self._event(kind, symbol, f"{stop.side} {stop.quantity} @ {price:.4f}", day)
         self._log_trade(day, symbol, stop.side, stop.quantity, price, price_jpy, cost, realized, kind)
-        total_loss = trade_loss + cost
+        self._check_close_loss(day, symbol, stop.quantity, prev_qty, trade_loss, cost, kind)
+
+    def _check_close_loss(
+        self, day: dt.date, symbol: str, closed: int, prev_qty: int, trade_loss: Decimal, exit_cost: Decimal, kind: str
+    ) -> None:
+        """決済した分の実損失（価格差＋決済コスト＋エントリーコスト按分）が上限を超えたらルール違反として停止。"""
+        entry_total = self.entry_costs.get(symbol, ZERO)
+        entry_share = entry_total * closed / prev_qty if prev_qty else ZERO
+        remaining = entry_total - entry_share
+        if closed >= prev_qty or remaining <= 0:
+            self.entry_costs.pop(symbol, None)
+        else:
+            self.entry_costs[symbol] = remaining
+        total_loss = trade_loss + exit_cost + entry_share
         if total_loss > self.risk.max_loss_per_trade:
-            self._event("rule_violation", symbol, f"損切りの実損失 {total_loss:.0f} 円が上限超過（{kind}）", day)
+            self._event("rule_violation", symbol, f"決済の実損失 {total_loss:.0f} 円が1トレード上限を超過（{kind}）", day)
             self._halt(day, f"{symbol} の実損失が1トレード上限を超過")
 
     def _stop_jpy(self, symbol: str, stop_local: Decimal, fx: Decimal, side: str) -> Decimal:
@@ -253,7 +285,8 @@ class PaperBroker:
         return (notional_jpy * self.limits.est_cost_rate).quantize(Decimal("0.01"))
 
     def _halt(self, day: dt.date, reason: str) -> None:
-        self.halted = reason
+        if not self.halted:  # 最初の停止理由を残す
+            self.halted = reason
         self._event("halted", detail=reason, day=day)
 
     def _reject(self, order: PendingOrder, reason: str) -> tuple[bool, str]:
@@ -306,6 +339,7 @@ class PaperBroker:
             "seen_client_ids": sorted(self.seen_client_ids),
             "halted": self.halted,
             "limit_hit_streak": self.limit_hit_streak,
+            "entry_costs": {s: str(v) for s, v in self.entry_costs.items()},
             "events": [asdict(e) for e in self.events],
             "trades": self.trades,
         }
@@ -335,6 +369,7 @@ class PaperBroker:
         b.seen_client_ids = set(data["seen_client_ids"])
         b.halted = data["halted"]
         b.limit_hit_streak = data["limit_hit_streak"]
+        b.entry_costs = {s: Decimal(v) for s, v in data.get("entry_costs", {}).items()}
         b.events = [Event(**e) for e in data["events"]]
         b.trades = list(data["trades"])
         return b

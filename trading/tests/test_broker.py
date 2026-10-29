@@ -216,3 +216,54 @@ def test_equity_includes_marked_positions():
 )
 def test_size_position(budget, dist, price, cap, expected):
     assert size_position(D(budget), D(dist), D(price), D(cap)) == expected
+
+
+# --- Codex レビュー指摘への対応 ----------------------------------------
+def test_usd_fill_uses_fx_known_at_open_and_marks_with_close_fx():
+    b = broker()
+    b.submit(buy("u1", sym="SPLG", qty=1, dist="2"))
+    b.process_day(D1, {"SPLG": bar(D1, 70)}, D(150), D(160))  # 約定は 150、評価は 160
+    pos = b.risk.position("SPLG")
+    assert pos.avg_price == D("70.035") * 150
+    assert pos.mark_price == D(70) * 160
+
+
+def test_violation_includes_entry_cost():
+    # 小さな窓開け：価格差＋決済コストは上限以下だが、エントリーコストを足すと上限を超える
+    b = broker(slippage_rate=D(0))
+    b.submit(buy(qty=8, dist="118"))  # 事前判定 944 + 往復コスト 47 = 991 → 受付
+    b.process_day(D1, {"1306.T": bar(D1, 3000)}, D(150))
+    assert b.entry_costs["1306.T"] == D("24.00")
+    # 始値 2,878.75 が損切り 2,882 を下回る → 始値約定：価格差 970 + 決済 23.03 = 993.03、+ エントリー 24 = 1,017.03
+    b.process_day(D2, {"1306.T": bar(D2, "2878.75", "2900", "2870", "2880")}, D(150))
+    assert b.trades[-1]["reason"] == "stop_gap"
+    assert any(e.kind == "rule_violation" for e in b.events) and b.halted
+    assert "1306.T" not in b.entry_costs
+
+
+def test_planned_stop_within_limit_is_not_a_violation():
+    b = broker(slippage_rate=D(0))
+    b.submit(buy(qty=8, dist="118"))
+    b.process_day(D1, {"1306.T": bar(D1, 3000)}, D(150))
+    b.process_day(D2, {"1306.T": bar(D2, 2950, 2960, 2870, 2880)}, D(150))  # 損切り価格で約定
+    assert b.trades[-1]["reason"] == "stop"
+    assert not b.halted
+
+
+def test_exit_fill_also_checked_for_violation():
+    b = broker(slippage_rate=D(0))
+    b.submit(buy(qty=8, dist="100"))
+    b.process_day(D1, {"1306.T": bar(D1, 3000)}, D(150))
+    b.submit(sell(qty=8))
+    # 手仕舞い注文が窓開けの始値 2,800 で約定（損切り判定より先）→ 実損失 1,600 超 → 違反
+    b.process_day(D2, {"1306.T": bar(D2, 2800)}, D(150))
+    assert b.risk.position("1306.T").quantity == 0
+    assert b.halted
+
+
+def test_entry_costs_survive_state_round_trip():
+    b = broker()
+    b.submit(buy(qty=5, dist="40"))
+    b.process_day(D1, {"1306.T": bar(D1, 3000)}, D(150))
+    r = PaperBroker.from_dict(json.loads(json.dumps(b.to_dict())), [JP, US], b.limits, b.config)
+    assert r.entry_costs == b.entry_costs

@@ -3,7 +3,10 @@
 使い方:
     python -m trading.runner --config config/paper.json --data data --state state
 
-- data/<銘柄>.csv（date,open,high,low,close：分割・配当調整済み）と data/USDJPY.csv を読む
+- data/<銘柄>.csv（date,open,high,low,close＝未調整の実際の価格、adj_close＝分割・配当調整済み終値）と
+  data/USDJPY.csv を読む。約定・損切り・損益は未調整価格、売買判定は調整済み価格で行う
+- 米国株の約定は「前営業日の為替終値」（約定時点で分かっている値）、評価は当日の為替終値で円換算する
+- 分割などで未調整価格と調整済み価格の動きが10%以上ずれた日に保有があれば、安全のため停止する
 - state/state.json（なければ新規）を読み、前回処理日より後の営業日を古い順に 1 日ずつ処理する
 - 各日：①ブローカーが始値約定・損切りを処理 ②その日の終値までで売買判定 ③翌始値の注文を出す
 - state/state.json・trades.csv・equity.csv・report.md を書き出す
@@ -24,15 +27,17 @@ from trading.safety import assert_paper_mode
 from trading.strategy import StrategyParams, evaluate
 
 
-def load_bars(path: pathlib.Path) -> list[Bar]:
+def load_bars(path: pathlib.Path, adjusted: bool = False) -> list[Bar]:
+    """日足を読む。adjusted=True なら adj_close/close の比率を OHLC に掛けた調整済み足を返す。"""
     bars = []
     with path.open(encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
             try:
-                b = Bar(
-                    dt.date.fromisoformat(row["date"]),
-                    Decimal(row["open"]), Decimal(row["high"]), Decimal(row["low"]), Decimal(row["close"]),
-                )
+                o, h, l, c = (Decimal(row[k]) for k in ("open", "high", "low", "close"))
+                f = Decimal(1)
+                if adjusted and row.get("adj_close"):
+                    f = Decimal(row["adj_close"]) / c
+                b = Bar(dt.date.fromisoformat(row["date"]), o * f, h * f, l * f, c * f)
             except (KeyError, ValueError, ArithmeticError):
                 continue
             if all(v.is_finite() and v > 0 for v in (b.open, b.high, b.low, b.close)) and b.low <= b.high:
@@ -78,7 +83,9 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
     else:
         broker = PaperBroker(instruments, limits, bcfg, start_day=start - dt.timedelta(days=1))
 
-    history = {i.symbol: load_bars(data_dir / f"{i.symbol}.csv") for i in instruments if (data_dir / f"{i.symbol}.csv").exists()}
+    files = {i.symbol: data_dir / f"{i.symbol}.csv" for i in instruments if (data_dir / f"{i.symbol}.csv").exists()}
+    history = {s: load_bars(p) for s, p in files.items()}  # 未調整（約定用）
+    adjusted = {s: load_bars(p, adjusted=True) for s, p in files.items()}  # 調整済み（判定用）
     fx_bars = load_bars(data_dir / "USDJPY.csv") if (data_dir / "USDJPY.csv").exists() else []
     missing = [i.symbol for i in instruments if i.symbol not in history]
     for m in missing:
@@ -87,25 +94,53 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
     after = broker.last_date or (start - dt.timedelta(days=1))
     days = sorted({b.date for bars in history.values() for b in bars if b.date > after and b.date >= start})
     equity_rows = []
+    uses_usd = any(i.currency == "USD" for i in instruments)
     for day in days:
-        fx = _fx_on(fx_bars, day)
-        if fx is None:
-            broker._event("data_missing", "USDJPY", f"{day} の為替がない", day)
-            if any(i.currency == "USD" for i in instruments):
+        fx_open = _fx_before(fx_bars, day)
+        fx_close = _fx_on(fx_bars, day)
+        if fx_open is None or fx_close is None:
+            if uses_usd:
+                broker._event("data_missing", "USDJPY", f"{day} の為替がないため処理を中断", day)
                 break
-            fx = Decimal(1)
+            fx_open = fx_close = Decimal(1)
         todays = {s: b for s, bars in history.items() for b in bars if b.date == day}
-        broker.process_day(day, todays, fx)
+        for s in _detect_corporate_actions(broker, history, adjusted, day):
+            todays.pop(s, None)  # 未調整価格が不連続な日は、その銘柄の約定・損切りを止めてオーナー確認に回す
+        broker.process_day(day, todays, fx_open, fx_close)
         for inst in instruments:
-            bars = [b for b in history.get(inst.symbol, []) if b.date <= day]
+            bars = [b for b in adjusted.get(inst.symbol, []) if b.date <= day]
             if not bars or bars[-1].date != day:
                 continue
-            _decide(broker, inst, bars, day, fx, params, risk_budget, bcfg)
+            _decide(broker, inst, bars, day, fx_close, params, risk_budget, bcfg)
         equity_rows.append({"date": str(day), "equity_jpy": str(broker.equity.quantize(Decimal("0.01"))),
                             "cash_jpy": str(broker.cash.quantize(Decimal("0.01"))), "halted": broker.halted})
 
     _write_outputs(broker, state_dir, equity_rows, cfg)
     return broker
+
+
+def _fx_before(fx_bars: list[Bar], day: dt.date) -> Decimal | None:
+    """day より前の直近の為替終値（その日の始値時点で分かっている値）。"""
+    prior = [b for b in fx_bars if b.date < day]
+    if not prior or (day - prior[-1].date).days > 5:
+        return None
+    return prior[-1].close
+
+
+def _detect_corporate_actions(broker, raw: dict, adj: dict, day: dt.date) -> list[str]:
+    found = []
+    for s, bars in raw.items():
+        if not broker.risk.position(s).quantity:
+            continue
+        r = [b for b in bars if b.date <= day][-2:]
+        a = [b for b in adj.get(s, []) if b.date <= day][-2:]
+        if len(r) < 2 or len(a) < 2 or r[-1].date != day:
+            continue
+        ratio = (r[-1].close / r[0].close) / (a[-1].close / a[0].close)
+        if abs(ratio - 1) > Decimal("0.10"):
+            broker.halt(day, f"{s} で分割などの企業行動の可能性（未調整と調整済みの値動きが乖離）")
+            found.append(s)
+    return found
 
 
 def _fx_on(fx_bars: list[Bar], day: dt.date) -> Decimal | None:

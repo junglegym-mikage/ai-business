@@ -6,18 +6,18 @@
  "markets": {
   "JP": {
    "trades": 203,
-   "net_pnl_jpy": 26418.03,
-   "expectancy_jpy": 130.138078817734,
+   "net_pnl_jpy": 26409.86,
+   "expectancy_jpy": 130.09783251231528,
    "win_rate_pct": 26.6,
    "profit_factor": 1.502,
    "max_drawdown_pct": 14.37,
-   "final_equity_jpy": 76418.04,
-   "expectancy_first_half_jpy": 210.70326732673269,
-   "expectancy_second_half_jpy": 50.36274509803921,
+   "final_equity_jpy": 76409.89,
+   "expectancy_first_half_jpy": 188.4769318181818,
+   "expectancy_second_half_jpy": 85.4251304347826,
    "by_year": {
     "2010": {
      "trades": 13,
-     "net_pnl_jpy": -4216.17
+     "net_pnl_jpy": -4224.33
     },
     "2011": {
      "trades": 10,
@@ -73,7 +73,7 @@
     },
     "2024": {
      "trades": 17,
-     "net_pnl_jpy": -1053.6
+     "net_pnl_jpy": -1053.61
     }
    },
    "period": [
@@ -86,6 +86,7 @@
     "1343.T",
     "1326.T"
    ],
+   "open_at_end": [],
    "halted": "",
    "events": {
     "accepted": 498,
@@ -111,15 +112,15 @@
    }
   },
   "US": {
-   "trades": 125,
-   "net_pnl_jpy": 2062.3,
-   "expectancy_jpy": 16.4984,
-   "win_rate_pct": 36.0,
-   "profit_factor": 1.062,
+   "trades": 127,
+   "net_pnl_jpy": 5125.626641049454,
+   "expectancy_jpy": 40.359264890153185,
+   "win_rate_pct": 37.0,
+   "profit_factor": 1.154,
    "max_drawdown_pct": 16.57,
-   "final_equity_jpy": 55152.7,
-   "expectancy_first_half_jpy": -5.0848387096774195,
-   "expectancy_second_half_jpy": 37.73904761904762,
+   "final_equity_jpy": 55152.71,
+   "expectancy_first_half_jpy": -19.632448979591835,
+   "expectancy_second_half_jpy": 78.04636719294172,
    "by_year": {
     "2010": {
      "trades": 8,
@@ -127,7 +128,7 @@
     },
     "2011": {
      "trades": 5,
-     "net_pnl_jpy": -1549.07
+     "net_pnl_jpy": -1549.06
     },
     "2012": {
      "trades": 7,
@@ -143,11 +144,11 @@
     },
     "2015": {
      "trades": 3,
-     "net_pnl_jpy": 438.22
+     "net_pnl_jpy": 438.23
     },
     "2016": {
      "trades": 6,
-     "net_pnl_jpy": -2014.28
+     "net_pnl_jpy": -2014.26
     },
     "2017": {
      "trades": 7,
@@ -178,8 +179,8 @@
      "net_pnl_jpy": 1151.26
     },
     "2024": {
-     "trades": 14,
-     "net_pnl_jpy": 732.75
+     "trades": 16,
+     "net_pnl_jpy": 3796.036641049454
     }
    },
    "period": [
@@ -191,6 +192,10 @@
     "SCHD",
     "VEA",
     "GLDM"
+   ],
+   "open_at_end": [
+    "GLDM",
+    "SPYM"
    ],
    "halted": "",
    "events": {

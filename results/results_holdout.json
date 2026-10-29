@@ -1,0 +1,68 @@
+{
+ "label": "holdout",
+ "start": "2024-10-29",
+ "end": "2026-10-29",
+ "prereg_commit": "f8d2a5f4c5dbb3ba73c5e2e91a1c097f401deff7",
+ "markets": {
+  "JP": {
+   "trades": 25,
+   "net_pnl_jpy": 452.37,
+   "expectancy_jpy": 18.0948,
+   "win_rate_pct": 28.0,
+   "profit_factor": 1.079,
+   "max_drawdown_pct": 7.44,
+   "final_equity_jpy": 50452.37,
+   "expectancy_first_half_jpy": -271.0621428571429,
+   "expectancy_second_half_jpy": 386.1127272727273,
+   "by_year": {
+    "2024": {
+     "trades": 4,
+     "net_pnl_jpy": -1369.57
+    },
+    "2025": {
+     "trades": 10,
+     "net_pnl_jpy": -2425.3
+    },
+    "2026": {
+     "trades": 11,
+     "net_pnl_jpy": 4247.24
+    }
+   },
+   "period": [
+    "2024-10-29",
+    "2026-10-29"
+   ],
+   "symbols": [
+    "1306.T",
+    "1475.T",
+    "1343.T",
+    "1326.T"
+   ],
+   "open_at_end": [],
+   "halted": "",
+   "events": {
+    "accepted": 35,
+    "data_gap": 1,
+    "filled": 35,
+    "skipped": 81,
+    "stop": 7,
+    "stop_gap": 8
+   },
+   "halts": 0,
+   "rule_violations": 0,
+   "data_gaps": 1,
+   "consistency_diff_jpy": 0.0,
+   "consistency_tolerance_jpy": 1.0,
+   "judgement": {
+    "checks": {
+     "取引回数": true,
+     "期待値プラス": true,
+     "プロフィットファクター": false,
+     "最大ドローダウン": true,
+     "ルール違反0回": true
+    },
+    "pass": false
+   }
+  }
+ }
+}

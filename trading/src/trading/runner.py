@@ -142,6 +142,10 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
             fx_open = fx_close = Decimal(1)
         todays = {s: b for s, bars in history.items() for b in bars if b.date == day}
         gaps = _held_gaps(broker, todays, day, markets)
+        if gaps and auto_resume:
+            # 過去データ検証では、過去の欠損日は二度と埋まらないので記録して進む（運用時は中断する）
+            broker._event("data_gap", ",".join(gaps), f"{day} の保有銘柄の足が欠損（検証では続行）", day)
+            gaps = []
         if gaps:
             # 同じ市場の他銘柄には足があるのに保有銘柄にだけない＝配信遅れ。損切り未判定のまま進めない
             broker._event("run_aborted", ",".join(gaps), f"{day} の保有銘柄の足が未配信のため、この日以降は次回処理")

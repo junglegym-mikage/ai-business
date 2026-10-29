@@ -321,3 +321,17 @@ def test_pending_order_market_delay_waits(tmp_path):
     b2 = run(p, data, tmp_path / f"s{signal_day}")
     fill = [t for t in b2.trades if t["symbol"] == "SPLG"][0]
     assert fill["date"] == dates[signal_day].isoformat()
+
+
+def test_backtest_mode_records_gap_and_continues(tmp_path):
+    data, dates = make_data(tmp_path, 230)
+    cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
+    cfg["universe"].append({"symbol": "1475.T", "currency": "JPY", "market": "JP"})
+    p = tmp_path / "cfgg.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    write_csv(data / "1475.T.csv", [{**r, "open": 300, "high": 300, "low": 300, "close": 300} for r in rows])
+    write_csv(data / "1306.T.csv", rows[:-3] + rows[-2:])  # 途中の1日だけ欠損
+    b = run(p, data, tmp_path / "state", auto_resume=True)
+    assert b.last_date == dates[-1]
+    assert any(e.kind == "data_gap" for e in b.events)

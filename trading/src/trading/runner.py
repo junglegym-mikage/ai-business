@@ -113,6 +113,11 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
                 break
             fx_open = fx_close = Decimal(1)
         todays = {s: b for s, bars in history.items() for b in bars if b.date == day}
+        gaps = _held_gaps(broker, todays, day)
+        if gaps:
+            # 同じ市場の他銘柄には足があるのに保有銘柄にだけない＝配信遅れ。損切り未判定のまま進めない
+            broker._event("run_aborted", ",".join(gaps), f"{day} の保有銘柄の足が未配信のため、この日以降は次回処理")
+            break
         _detect_corporate_actions(broker, history, adjusted, splits, day)  # 検出した銘柄は凍結（以後の処理を止める）
         broker.process_day(day, todays, fx_open, fx_close)
         for inst in instruments:
@@ -128,6 +133,18 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
 
     _write_outputs(broker, state_dir, equity_rows, cfg)
     return broker
+
+
+def _held_gaps(broker: PaperBroker, todays: dict, day: dt.date) -> list[str]:
+    """保有銘柄のうち、同じ市場（通貨）の他銘柄には当日の足があるのに自分にはない銘柄。"""
+    gaps = []
+    for s, inst in broker.instruments.items():
+        if s in todays or s in broker.frozen or not broker.risk.position(s).quantity:
+            continue
+        peers = [p for p, i in broker.instruments.items() if p != s and i.currency == inst.currency]
+        if any(p in todays for p in peers):
+            gaps.append(s)
+    return gaps
 
 
 def _stale_held_symbols(broker: PaperBroker, history: dict) -> list[str]:

@@ -207,3 +207,39 @@ def test_missing_data_for_held_symbol_aborts_without_advancing(tmp_path):
     b2 = run(p, data, tmp_path / "state")
     assert b2.last_date == last  # 日付を進めない
     assert any(e.kind == "run_aborted" and "1306.T" in e.symbol for e in b2.events)
+
+
+def test_partial_delay_of_held_symbol_stops_before_that_day(tmp_path):
+    data, dates = make_data(tmp_path, 230)
+    cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
+    cfg["universe"].append({"symbol": "1475.T", "currency": "JPY"})
+    p = tmp_path / "cfg3.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    flat = [{**r, "open": 300, "high": 300, "low": 300, "close": 300} for r in rows]
+    write_csv(data / "1475.T.csv", flat)
+    write_csv(data / "1306.T.csv", rows[:-2])  # 保有予定の 1306.T だけ直近2日が未配信
+    b = run(p, data, tmp_path / "state")
+    assert b.risk.position("1306.T").quantity > 0
+    assert b.last_date == dates[-3]  # 1306.T の足がない日には進まない
+    assert any(e.kind == "run_aborted" for e in b.events)
+    # 配信が追いついたら続きから処理される
+    write_csv(data / "1306.T.csv", rows)
+    b2 = run(p, data, tmp_path / "state")
+    assert b2.last_date == dates[-1]
+
+
+def test_market_holiday_for_held_symbol_does_not_abort(tmp_path):
+    data, dates = make_data(tmp_path, 230)
+    cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
+    cfg["universe"].append({"symbol": "SPLG", "currency": "USD"})
+    p = tmp_path / "cfg4.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    us = [{**r, "open": 50, "high": 50, "low": 50, "close": 50} for r in rows]
+    holiday = rows[-1]["date"]
+    write_csv(data / "1306.T.csv", rows[:-1])  # 最終日は日本の休場、米国だけ取引
+    write_csv(data / "SPLG.csv", us)
+    b = run(p, data, tmp_path / "state")
+    assert b.last_date.isoformat() == holiday
+    assert not any(e.kind == "run_aborted" for e in b.events)

@@ -1,0 +1,48 @@
+name: claude
+
+# Issue / PR のコメントで「@claude」と書くと、Claude Code が GitHub Actions 上で作業する。
+# 株式システムの作業は trading/develop を起点にブランチを切り、PR の宛先も trading/develop。
+# 認証はオーナーの Claude サブスクリプション（CLAUDE_CODE_OAUTH_TOKEN）を使い、API 従量課金は使わない。
+# 書き込み権限のあるユーザー（オーナー）のコメントでしか動かない（アクションの既定動作）。
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened]
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          base_branch: trading/develop
+          branch_prefix: trading/claude-
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --max-turns 30
+            --append-system-prompt "このリポジトリの株式システム（trading/）の作業では、trading/develop ブランチの CLAUDE.md のルールに必ず従う。実資金取引・証券口座への発注は実装しない。認証情報を書かない。PR の宛先は trading/develop。どの PR もマージしない（マージはオーナーのみ）。テストを実行し、結果を PR に書く。"

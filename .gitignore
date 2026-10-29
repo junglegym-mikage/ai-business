@@ -1,0 +1,19 @@
+# 認証情報・ローカル設定（絶対にコミットしない）
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# 実行時に生成されるデータ・ログ
+trading/data/
+trading/logs/
+pytest-output.txt

@@ -1,0 +1,77 @@
+name: trading-ci
+
+# 株式システム（trading/）の自動テスト。事業サイト側の変更では動かない。
+on:
+  pull_request:
+    branches: [trading/develop, main]
+    paths:
+      - "trading/**"
+      - ".github/workflows/trading-ci.yml"
+      - "CLAUDE.md"
+      - "AGENTS.md"
+  push:
+    branches: [trading/develop]
+    paths:
+      - "trading/**"
+      - ".github/workflows/trading-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: trading-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        working-directory: trading
+        run: python -m pip install --upgrade pip && pip install -e ".[dev]"
+
+      - name: Secret scan
+        run: python trading/tools/check_secrets.py
+
+      - name: Tests
+        id: tests
+        working-directory: trading
+        run: |
+          set -o pipefail
+          python -m pytest -rA 2>&1 | tee ../pytest-output.txt
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## trading-ci テスト結果"
+            echo ""
+            echo "- コミット: \`${GITHUB_SHA::7}\`"
+            echo "- 結果: **${{ steps.tests.outcome }}**"
+            echo ""
+            echo '```'
+            tail -n 40 pytest-output.txt 2>/dev/null || echo "(出力なし)"
+            echo '```'
+          } > summary.md
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record result on PR
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            cat summary.md
+            echo ""
+            echo "実行ログ: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "$GITHUB_REPOSITORY" --body-file comment.md

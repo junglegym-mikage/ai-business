@@ -1,0 +1,14 @@
+[project]
+name = "trading"
+version = "0.1.0"
+description = "日本株・米国株 自動売買システム（ペーパートレード検証専用）"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"

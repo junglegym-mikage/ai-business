@@ -1,0 +1,28 @@
+name: 株式システムのタスク
+description: Claude に実装してほしいタスクを登録します（ペーパートレード専用）
+title: "[trading] "
+labels: ["trading", "claude-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        APIキー・パスワード・口座番号は絶対に書かないでください。
+        実資金での取引や証券口座への発注は対象外です。
+  - type: textarea
+    id: goal
+    attributes:
+      label: やってほしいこと
+      description: 何を作る／直すか。1〜3行で。
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了の条件
+      description: どうなったら完了か（例：〇〇のテストが通る、上限を超える注文は拒否される）
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足（任意）

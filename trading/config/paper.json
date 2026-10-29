@@ -47,9 +47,9 @@
       "market": "JP"
     },
     {
-      "symbol": "SPLG",
+      "symbol": "SPYM",
       "currency": "USD",
-      "name": "S&P500 ETF",
+      "name": "S&P500 ETF（旧ティッカー SPLG、2025-10-31 に SPYM へ変更）",
       "market": "US"
     },
     {
@@ -70,5 +70,8 @@
       "name": "金ETF",
       "market": "US"
     }
+  ],
+  "_changes": [
+    "2026-10-29: SPLG→SPYM（ティッカー変更でデータ取得不可だったため。取引発生前の変更で、成績への影響なし）"
   ]
 }

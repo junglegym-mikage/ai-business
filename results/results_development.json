@@ -5,75 +5,75 @@
  "prereg_commit": null,
  "markets": {
   "JP": {
-   "trades": 203,
-   "net_pnl_jpy": 26409.86,
-   "expectancy_jpy": 130.09783251231528,
-   "win_rate_pct": 26.6,
-   "profit_factor": 1.502,
-   "max_drawdown_pct": 14.37,
-   "final_equity_jpy": 76409.89,
-   "expectancy_first_half_jpy": 188.4769318181818,
-   "expectancy_second_half_jpy": 85.4251304347826,
+   "trades": 201,
+   "net_pnl_jpy": 24980.03,
+   "expectancy_jpy": 124.27875621890547,
+   "win_rate_pct": 30.3,
+   "profit_factor": 1.751,
+   "max_drawdown_pct": 8.31,
+   "final_equity_jpy": 74979.97,
+   "expectancy_first_half_jpy": 178.92581395348836,
+   "expectancy_second_half_jpy": 83.41226086956522,
    "by_year": {
     "2010": {
-     "trades": 13,
-     "net_pnl_jpy": -4224.33
+     "trades": 11,
+     "net_pnl_jpy": -1177.53
     },
     "2011": {
-     "trades": 10,
-     "net_pnl_jpy": 2996.12
+     "trades": 9,
+     "net_pnl_jpy": 2506.35
     },
     "2012": {
      "trades": 9,
-     "net_pnl_jpy": 924.67
+     "net_pnl_jpy": 1557.74
     },
     "2013": {
-     "trades": 8,
-     "net_pnl_jpy": 19902.51
+     "trades": 9,
+     "net_pnl_jpy": 14387.77
     },
     "2014": {
      "trades": 14,
-     "net_pnl_jpy": -763.16
+     "net_pnl_jpy": -709.24
     },
     "2015": {
-     "trades": 11,
-     "net_pnl_jpy": 971.66
+     "trades": 10,
+     "net_pnl_jpy": 1201.21
     },
     "2016": {
      "trades": 12,
-     "net_pnl_jpy": -3433.36
+     "net_pnl_jpy": -2399.52
     },
     "2017": {
-     "trades": 17,
-     "net_pnl_jpy": 1849.41
+     "trades": 19,
+     "net_pnl_jpy": 670.52
     },
     "2018": {
-     "trades": 14,
-     "net_pnl_jpy": 1660.93
+     "trades": 15,
+     "net_pnl_jpy": 1088.0
     },
     "2019": {
-     "trades": 9,
-     "net_pnl_jpy": 3606.71
+     "trades": 8,
+     "net_pnl_jpy": 3749.44
     },
     "2020": {
      "trades": 14,
-     "net_pnl_jpy": 150.84
+     "net_pnl_jpy": 1746.7
     },
     "2021": {
      "trades": 15,
-     "net_pnl_jpy": 8491.27
+     "net_pnl_jpy": 4720.42
     },
     "2022": {
-     "trades": 22,
-     "net_pnl_jpy": -5828.37
+     "trades": 19,
+     "net_pnl_jpy": -2138.26
     },
     "2023": {
-     "trades": 18,
-     "net_pnl_jpy": 1158.57
+     "trades": 20,
+     "net_pnl_jpy": 455.1
     },
     "2024": {
      "trades": 17,
-     "net_pnl_jpy": -1053.61
+     "net_pnl_jpy": -678.67
     }
    },
    "period": [
@@ -89,98 +89,100 @@
    "open_at_end": [],
    "halted": "",
    "events": {
-    "accepted": 498,
-    "auto_resumed": 2,
-    "cancelled": 152,
+    "accepted": 353,
+    "cancelled": 9,
     "data_gap": 1,
-    "filled": 346,
-    "halted": 2,
-    "rule_violation": 2,
-    "skipped": 92,
-    "stop": 47,
-    "stop_gap": 13
+    "filled": 344,
+    "skipped": 138,
+    "stop": 44,
+    "stop_gap": 14
    },
+   "halts": 0,
+   "rule_violations": 0,
+   "data_gaps": 1,
+   "consistency_diff_jpy": 0.06,
+   "consistency_tolerance_jpy": 1.0,
    "judgement": {
     "checks": {
      "取引回数": true,
      "期待値プラス": true,
      "プロフィットファクター": true,
-     "最大ドローダウン": false,
+     "最大ドローダウン": true,
      "前後半とも期待値プラス": true
     },
-    "pass": false
+    "pass": true
    }
   },
   "US": {
-   "trades": 127,
-   "net_pnl_jpy": 5125.626641049454,
-   "expectancy_jpy": 40.359264890153185,
-   "win_rate_pct": 37.0,
-   "profit_factor": 1.154,
-   "max_drawdown_pct": 16.57,
-   "final_equity_jpy": 55152.71,
-   "expectancy_first_half_jpy": -19.632448979591835,
-   "expectancy_second_half_jpy": 78.04636719294172,
+   "trades": 222,
+   "net_pnl_jpy": 27121.43842091919,
+   "expectancy_jpy": 122.16864153567201,
+   "win_rate_pct": 41.0,
+   "profit_factor": 1.779,
+   "max_drawdown_pct": 11.21,
+   "final_equity_jpy": 77153.2,
+   "expectancy_first_half_jpy": 130.93641304347827,
+   "expectancy_second_half_jpy": 115.96375708399374,
    "by_year": {
     "2010": {
-     "trades": 8,
-     "net_pnl_jpy": -661.23
+     "trades": 11,
+     "net_pnl_jpy": -1874.78
     },
     "2011": {
-     "trades": 5,
-     "net_pnl_jpy": -1549.06
+     "trades": 10,
+     "net_pnl_jpy": -1159.58
     },
     "2012": {
-     "trades": 7,
-     "net_pnl_jpy": -1059.95
+     "trades": 13,
+     "net_pnl_jpy": 1832.77
     },
     "2013": {
-     "trades": 7,
-     "net_pnl_jpy": 1705.07
+     "trades": 11,
+     "net_pnl_jpy": 7688.7
     },
     "2014": {
-     "trades": 10,
-     "net_pnl_jpy": 2808.58
+     "trades": 16,
+     "net_pnl_jpy": 6116.81
     },
     "2015": {
-     "trades": 3,
-     "net_pnl_jpy": 438.23
+     "trades": 18,
+     "net_pnl_jpy": -1368.0
     },
     "2016": {
-     "trades": 6,
-     "net_pnl_jpy": -2014.26
+     "trades": 10,
+     "net_pnl_jpy": -3613.13
     },
     "2017": {
-     "trades": 7,
-     "net_pnl_jpy": 1926.79
+     "trades": 8,
+     "net_pnl_jpy": 6599.65
     },
     "2018": {
-     "trades": 10,
-     "net_pnl_jpy": -1907.06
+     "trades": 14,
+     "net_pnl_jpy": 723.31
     },
     "2019": {
-     "trades": 6,
-     "net_pnl_jpy": -549.24
+     "trades": 18,
+     "net_pnl_jpy": -157.47
     },
     "2020": {
-     "trades": 13,
-     "net_pnl_jpy": -2989.46
+     "trades": 17,
+     "net_pnl_jpy": 1288.8
     },
     "2021": {
-     "trades": 10,
-     "net_pnl_jpy": 4261.92
+     "trades": 24,
+     "net_pnl_jpy": 1371.92
     },
     "2022": {
-     "trades": 8,
-     "net_pnl_jpy": -232.0
+     "trades": 14,
+     "net_pnl_jpy": 1129.06
     },
     "2023": {
-     "trades": 11,
-     "net_pnl_jpy": 1151.26
+     "trades": 19,
+     "net_pnl_jpy": 1141.18
     },
     "2024": {
-     "trades": 16,
-     "net_pnl_jpy": 3796.036641049454
+     "trades": 19,
+     "net_pnl_jpy": 7402.198420919187
     }
    },
    "period": [
@@ -195,27 +197,33 @@
    ],
    "open_at_end": [
     "GLDM",
+    "SCHD",
     "SPYM"
    ],
    "halted": "",
    "events": {
-    "accepted": 1417,
-    "auto_resumed": 3,
-    "cancelled": 1222,
-    "filled": 195,
-    "halted": 3,
-    "rejected": 1,
-    "rule_violation": 3,
-    "stop": 35,
-    "stop_gap": 22
+    "accepted": 440,
+    "auto_resumed": 1,
+    "cancelled": 70,
+    "filled": 370,
+    "halted": 2,
+    "rule_violation": 2,
+    "skipped": 3,
+    "stop": 58,
+    "stop_gap": 13
    },
+   "halts": 2,
+   "rule_violations": 2,
+   "data_gaps": 0,
+   "consistency_diff_jpy": 31.76157908081,
+   "consistency_tolerance_jpy": 32.757422623576005,
    "judgement": {
     "checks": {
      "取引回数": true,
      "期待値プラス": true,
-     "プロフィットファクター": false,
+     "プロフィットファクター": true,
      "最大ドローダウン": false,
-     "前後半とも期待値プラス": false
+     "前後半とも期待値プラス": true
     },
     "pass": false
    }

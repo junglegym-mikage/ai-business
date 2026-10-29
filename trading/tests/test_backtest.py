@@ -179,3 +179,20 @@ def test_gap_days_are_counted_once_per_day(tmp_path):
     cfg, data, rows = _synthetic(tmp_path, gap_rows=range(240, 243))
     m = evaluate_market(cfg, "JP", data, dt.date.fromisoformat(rows[210]["date"]), dt.date.fromisoformat(rows[-1]["date"]), tmp_path / "w")
     assert m["data_gaps"] == 3
+
+
+def test_preregistration_pins_current_config():
+    import hashlib
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    pre = json.loads((root / "config" / "preregistration.json").read_text(encoding="utf-8"))
+    assert pre["strategy_config_sha256"] == hashlib.sha256((root / "config" / "paper.json").read_bytes()).hexdigest()
+    assert pre["final_markets"] == ["JP"]
+
+
+def test_holdout_criteria_skip_halves_and_require_no_violations():
+    m = {"trades": 12, "expectancy_jpy": 50.0, "profit_factor": 1.5, "max_drawdown_pct": 5.0,
+         "expectancy_first_half_jpy": -10.0, "expectancy_second_half_jpy": 80.0, "rule_violations": 0}
+    crit = {"min_trades": 10, "expectancy_after_costs_jpy_gt": 0, "profit_factor_min": 1.2, "max_drawdown_pct_max": 10, "halves_required": False}
+    assert judge(m, crit)["pass"]
+    assert not judge({**m, "rule_violations": 1}, crit)["pass"]

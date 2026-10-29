@@ -121,8 +121,11 @@ def judge(m: dict, crit: dict) -> dict:
         "期待値プラス": m["expectancy_jpy"] > crit["expectancy_after_costs_jpy_gt"],
         "プロフィットファクター": (m["profit_factor"] or 0) >= crit["profit_factor_min"],
         "最大ドローダウン": m["max_drawdown_pct"] <= crit["max_drawdown_pct_max"],
-        "前後半とも期待値プラス": m["expectancy_first_half_jpy"] > 0 and m["expectancy_second_half_jpy"] > 0,
     }
+    if crit.get("halves_required", True):
+        checks["前後半とも期待値プラス"] = m["expectancy_first_half_jpy"] > 0 and m["expectancy_second_half_jpy"] > 0
+    if "rule_violations" in m and not crit.get("halves_required", True):
+        checks["ルール違反0回"] = m["rule_violations"] == 0
     return {"checks": checks, "pass": all(checks.values())}
 
 
@@ -213,6 +216,10 @@ def main() -> None:
     holdout = dt.date.fromisoformat(pre["holdout_start"])
     if a.final:
         verify_preregistration(a.prereg, a.prereg_commit)
+        import hashlib
+
+        if hashlib.sha256(a.config.read_bytes()).hexdigest() != pre.get("strategy_config_sha256"):
+            raise SystemExit("売買ルールの設定ファイルが事前登録時と異なる。ホールドアウトは開けない")
         start, end, label = holdout, dt.date.today(), "holdout"
     else:
         start = dt.date.fromisoformat(pre["development_period"]["start"])
@@ -224,9 +231,10 @@ def main() -> None:
                "prereg_commit": a.prereg_commit or None, "markets": {}}
     with tempfile.TemporaryDirectory() as tmp:
         work = pathlib.Path(tmp)
-        for market in pre["markets_evaluated_separately"]:
+        markets = pre.get("final_markets", pre["markets_evaluated_separately"]) if a.final else pre["markets_evaluated_separately"]
+        for market in markets:
             m = evaluate_market(cfg, market, a.data, start, end, work)
-            m["judgement"] = judge(m, pre["pass_criteria"])
+            m["judgement"] = judge(m, pre["holdout_pass_criteria"] if a.final else pre["pass_criteria"])
             results["markets"][market] = m
             shutil.copy(work / f"trades_{market}.csv", a.out / f"trades_{label}_{market}.csv")
     (a.out / f"results_{label}.json").write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")

@@ -25,11 +25,11 @@ def test_round_trips_include_both_costs():
 
 def test_metrics_and_judgement():
     trips = [{"pnl": D(100), "exit": "2020-01-01"}, {"pnl": D(-40), "exit": "2021-01-01"},
-             {"pnl": D(60), "exit": "2021-06-01"}, {"pnl": D(-20), "exit": "2022-01-01"}]
+             {"pnl": D(60), "exit": "2021-06-01"}, {"pnl": D(20), "exit": "2022-01-01"}]
     eq = [("2020-01-01", D(50000)), ("2020-06-01", D(55000)), ("2021-01-01", D(52250)), ("2022-01-01", D(56000))]
     m = metrics(trips, eq, D(50000))
-    assert m["trades"] == 4 and m["expectancy_jpy"] == 25.0
-    assert m["profit_factor"] == round(160 / 60, 3)
+    assert m["trades"] == 4 and m["expectancy_jpy"] == 35.0
+    assert m["profit_factor"] == round(180 / 40, 3)
     assert m["max_drawdown_pct"] == 5.0  # 55,000 → 52,250
     assert m["by_year"]["2021"] == {"trades": 2, "net_pnl_jpy": 20.0}
     j = judge(m, CRIT)
@@ -60,3 +60,51 @@ def test_evaluate_market_never_reads_past_end(tmp_path):
     end = dt.date.fromisoformat(rows[250]["date"])
     m = evaluate_market(cfg, "JP", data, dt.date.fromisoformat(rows[210]["date"]), end, tmp_path / "w")
     assert m["period"][1] == end.isoformat()
+
+
+def test_open_position_at_end_is_marked_into_results():
+    trips = round_trips([t("2020-01-01", "buy", cost="10")], {"A": (10, D(100), D(90))}, "2020-12-31", D("0.001"))
+    assert len(trips) == 1 and trips[0]["exit"] == "2020-12-31"
+    assert trips[0]["pnl"] == D(-10) + D(-100) - D("0.9")  # エントリーコスト＋含み損＋想定決済コスト
+
+
+def test_halves_split_by_date_not_count():
+    trips = [{"pnl": D(10), "exit": f"2020-0{m}-01"} for m in range(1, 8)] + [{"pnl": D(-50), "exit": "2020-12-01"}]
+    eq = [("2020-01-01", D(50000)), ("2020-12-31", D(50000))]
+    m = metrics(trips, eq, D(50000))
+    assert m["expectancy_second_half_jpy"] < 0  # 件数で二分すると後半もプラスに見えてしまう
+
+
+def test_missing_symbol_data_invalidates_market(tmp_path):
+    data = tmp_path / "data"
+    data.mkdir()
+    cfg = json.loads((pathlib.Path(__file__).resolve().parents[1] / "config" / "paper.json").read_text(encoding="utf-8"))
+    cfg["universe"] = [{"symbol": "1306.T", "currency": "JPY", "market": "JP"}]
+    m = evaluate_market(cfg, "JP", data, dt.date(2020, 1, 1), dt.date(2020, 12, 31), tmp_path / "w")
+    j = judge(m, CRIT)
+    assert not j["pass"] and "データ欠損" in j["invalid"]
+
+
+def test_final_requires_matching_committed_preregistration(tmp_path):
+    import subprocess
+
+    from trading.backtest import verify_preregistration
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    run_ = lambda *a: subprocess.run(["git", "-C", str(repo), *a], check=True, capture_output=True, text=True)
+    run_("init", "-q")
+    run_("config", "user.email", "t@example.com")
+    run_("config", "user.name", "t")
+    run_("config", "commit.gpgsign", "false")
+    f = repo / "prereg.json"
+    f.write_text('{"a": 1}\n', encoding="utf-8")
+    run_("add", ".")
+    run_("commit", "-qm", "prereg")
+    sha = run_("rev-parse", "HEAD").stdout.strip()
+    verify_preregistration(f, sha)  # 一致すれば通る
+    with pytest.raises(SystemExit):
+        verify_preregistration(f, "deadbeef")  # 存在しないコミット
+    f.write_text('{"a": 2}\n', encoding="utf-8")
+    with pytest.raises(SystemExit):
+        verify_preregistration(f, sha)  # 登録後に変更

@@ -19,6 +19,7 @@ import datetime as dt
 import json
 import pathlib
 import shutil
+import subprocess
 import tempfile
 from decimal import Decimal
 
@@ -44,8 +45,12 @@ def _d(s: str) -> dt.date | None:
         return None
 
 
-def round_trips(trades: list[dict]) -> list[dict]:
-    """約定記録を往復トレードにまとめる（新規は建玉ゼロからのみなので、買い→売りで1往復）。"""
+def round_trips(trades: list[dict], open_marks: dict | None = None, end_date: str = "", cost_rate: Decimal = Decimal(0)) -> list[dict]:
+    """約定記録を往復トレードにまとめる（新規は建玉ゼロからのみなので、買い→売りで1往復）。
+
+    期末に残った建玉は open_marks（銘柄 → (数量, 平均取得価格, 評価価格)：円）で期末の評価額で決済したとみなし、
+    想定決済コストを引いて成績に含める（含み損を無視して過大評価しないため）。
+    """
     open_: dict[str, dict] = {}
     out = []
     for t in trades:
@@ -63,6 +68,13 @@ def round_trips(trades: list[dict]) -> list[dict]:
             rt["reason"] = t["reason"]
             out.append(rt)
             del open_[s]
+    for s, rt in open_.items():
+        qty, avg, mark = (open_marks or {}).get(s, (0, Decimal(0), Decimal(0)))
+        if qty:
+            rt["pnl"] += (mark - avg) * qty - mark * abs(qty) * cost_rate
+        rt["exit"] = end_date
+        rt["reason"] = "期末評価（未決済）"
+        out.append(rt)
     return out
 
 
@@ -75,8 +87,14 @@ def metrics(trips: list[dict], equity: list[tuple[str, Decimal]], capital: Decim
         peak = max(peak, e)
         if peak > 0:
             max_dd = max(max_dd, (peak - e) / peak * 100)
-    half = len(trips) // 2
-    first, second = pnls[:half], pnls[half:]
+    # 前半・後半は評価期間の中間日で分ける（取引件数で分けると頻度の偏りで後半の悪化を見落とす）
+    if equity:
+        d0, d1 = dt.date.fromisoformat(equity[0][0]), dt.date.fromisoformat(equity[-1][0])
+        mid = (d0 + (d1 - d0) / 2).isoformat()
+    else:
+        mid = ""
+    first = [t["pnl"] for t in trips if t["exit"] < mid]
+    second = [t["pnl"] for t in trips if t["exit"] >= mid]
     by_year: dict[str, list[Decimal]] = {}
     for t in trips:
         by_year.setdefault(t["exit"][:4], []).append(t["pnl"])
@@ -96,6 +114,8 @@ def metrics(trips: list[dict], equity: list[tuple[str, Decimal]], capital: Decim
 
 
 def judge(m: dict, crit: dict) -> dict:
+    if m.get("invalid"):
+        return {"checks": {"データ完全性": False}, "pass": False, "invalid": m["invalid"]}
     checks = {
         "取引回数": m["trades"] >= crit["min_trades"],
         "期待値プラス": m["expectancy_jpy"] > crit["expectancy_after_costs_jpy_gt"],
@@ -108,6 +128,9 @@ def judge(m: dict, crit: dict) -> dict:
 
 def evaluate_market(cfg: dict, market: str, data_dir: pathlib.Path, start: dt.date, end: dt.date, work: pathlib.Path) -> dict:
     universe = [u for u, m in zip(cfg["universe"], _markets(cfg)) if m == market]
+    missing = [u["symbol"] for u in universe if not (data_dir / f"{u['symbol']}.csv").exists()]
+    if any(u["currency"] == "USD" for u in universe) and not (data_dir / "USDJPY.csv").exists():
+        missing.append("USDJPY")
     sub = {**cfg, "universe": universe, "start_date": start.isoformat()}
     d = work / f"data_{market}"
     d.mkdir(parents=True, exist_ok=True)
@@ -126,12 +149,35 @@ def evaluate_market(cfg: dict, market: str, data_dir: pathlib.Path, start: dt.da
     with (state / "equity.csv").open(encoding="utf-8") as fh:
         for r in csv.DictReader(fh):
             equity.append((r["date"], Decimal(r["equity_jpy"])))
-    m = metrics(round_trips(broker.trades), equity, Decimal(cfg["risk"]["capital_jpy"]))
+    marks = {s: (p.quantity, p.avg_price, p.mark_price) for s in broker.instruments if (p := broker.risk.position(s)).quantity}
+    trips = round_trips(broker.trades, marks, equity[-1][0] if equity else "", Decimal(cfg["risk"]["est_cost_rate"]))
+    m = metrics(trips, equity, Decimal(cfg["risk"]["capital_jpy"]))
     m["symbols"] = [u["symbol"] for u in universe]
+    m["open_at_end"] = sorted(marks)
+    if missing:
+        m["invalid"] = f"データ欠損: {', '.join(missing)}"
     m["halted"] = broker.halted
     m["events"] = {k: sum(1 for e in broker.events if e.kind == k) for k in sorted({e.kind for e in broker.events})}
     shutil.copy(state / "trades.csv", work / f"trades_{market}.csv")
     return m
+
+
+def verify_preregistration(prereg_path: pathlib.Path, commit: str) -> None:
+    """指定コミットが実在し、その時点の事前登録ファイルが今読むファイルと完全に一致することを確かめる。"""
+    if len(commit) < 7:
+        raise SystemExit("--final には事前登録ファイルのコミットID（--prereg-commit）が必要")
+    path = prereg_path.resolve()
+    top = subprocess.run(["git", "-C", str(path.parent), "rev-parse", "--show-toplevel"],
+                         capture_output=True, text=True, check=False)
+    if top.returncode != 0:
+        raise SystemExit("git リポジトリ内で実行してください")
+    rel = path.relative_to(pathlib.Path(top.stdout.strip()))
+    shown = subprocess.run(["git", "-C", top.stdout.strip(), "show", f"{commit}:{rel.as_posix()}"],
+                           capture_output=True, text=True, check=False)
+    if shown.returncode != 0:
+        raise SystemExit(f"コミット {commit} に事前登録ファイルがない（コミットが存在しないか、ファイル未登録）")
+    if shown.stdout != path.read_text(encoding="utf-8"):
+        raise SystemExit("事前登録ファイルがコミット時点から変更されている。ホールドアウトは開けない")
 
 
 def main() -> None:
@@ -149,8 +195,7 @@ def main() -> None:
     pre = json.loads(a.prereg.read_text(encoding="utf-8"))
     holdout = dt.date.fromisoformat(pre["holdout_start"])
     if a.final:
-        if len(a.prereg_commit) < 7:
-            raise SystemExit("--final には事前登録ファイルのコミットID（--prereg-commit）が必要")
+        verify_preregistration(a.prereg, a.prereg_commit)
         start, end, label = holdout, dt.date.today(), "holdout"
     else:
         start = dt.date.fromisoformat(pre["development_period"]["start"])

@@ -32,6 +32,19 @@
     "halves_required": false,
     "_note": "ホールドアウトは約2年で取引数が少ないため、取引10回以上とし、前後半の安定性は判定に使わない（記録のみ）。ルール違反は0回であること。"
   },
-  "code_sha256": "df846ace5abc45c749476bd3f9cfaf852f0b3a4e72129425b11ce66729d4357d",
-  "_code_note": "code_sha256 = src/trading/*.py のハッシュ（backtest.code_sha256）。コードを変えたらホールドアウトは開けない"
+  "code_sha256": "2fa39bf7d1dc3e1d9cdbc91c6aa46ee42953c52a9c718252c354bd11bc473dc1",
+  "_code_note": "code_sha256 = src/trading/*.py のハッシュ（backtest.code_sha256）。コードを変えたらホールドアウトは開けない",
+  "holdout_result": "2026-10-29 評価済み：JP 不合格（PF 1.08）。再利用不可",
+  "forward_test": {
+    "start": "2026-10-30",
+    "markets": [
+      "JP"
+    ],
+    "min_trades": 30,
+    "expectancy_after_costs_jpy_gt": 0,
+    "profit_factor_min": 1.2,
+    "max_drawdown_pct_max": 10,
+    "rule_violations_max": 0,
+    "_note": "前向き検証（模擬売買）の合格条件。評価開始前に固定。取引30回に達するまで途中結果で採否を変えない。ルールを変えた場合はその日から数え直す。"
+  }
 }

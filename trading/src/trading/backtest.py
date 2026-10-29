@@ -108,6 +108,8 @@ def metrics(trips: list[dict], equity: list[tuple[str, Decimal]], capital: Decim
         "final_equity_jpy": float(equity[-1][1]) if equity else float(capital),
         "expectancy_first_half_jpy": float(sum(first, Decimal(0)) / len(first)) if first else 0.0,
         "expectancy_second_half_jpy": float(sum(second, Decimal(0)) / len(second)) if second else 0.0,
+        "first_half": {"trades": len(first), "net_pnl_jpy": float(sum(first, Decimal(0)))},
+        "second_half": {"trades": len(second), "net_pnl_jpy": float(sum(second, Decimal(0)))},
         "by_year": {y: {"trades": len(v), "net_pnl_jpy": float(sum(v, Decimal(0)))} for y, v in sorted(by_year.items())},
         "period": [equity[0][0], equity[-1][0]] if equity else None,
     }
@@ -237,6 +239,8 @@ def main() -> None:
     pre = json.loads(a.prereg.read_text(encoding="utf-8"))
     holdout = dt.date.fromisoformat(pre["holdout_start"])
     if a.final:
+        if pre.get("holdout_result"):
+            raise SystemExit(f"ホールドアウトは評価済み（{pre['holdout_result']}）。再利用しない")
         verify_preregistration(a.prereg, a.prereg_commit)
         import hashlib
 
@@ -273,7 +277,8 @@ def main() -> None:
                   f"- 判定: **{'合格' if j['pass'] else '不合格'}**  " + " / ".join(f"{k}:{'○' if v else '×'}" for k, v in j["checks"].items()),
                   f"- 取引 {m['trades']} 回、勝率 {m['win_rate_pct']}%、期待値 {m['expectancy_jpy']:+.0f} 円/回、PF {m['profit_factor']}",
                   f"- 損益合計 {m['net_pnl_jpy']:+.0f} 円、最終評価額 {m['final_equity_jpy']:.0f} 円、最大DD {m['max_drawdown_pct']}%",
-                  f"- 前半/後半の期待値 {m['expectancy_first_half_jpy']:+.0f} / {m['expectancy_second_half_jpy']:+.0f} 円",
+                  f"- 前半 {m['first_half']['trades']} 回・合計 {m['first_half']['net_pnl_jpy']:+.0f} 円（平均 {m['expectancy_first_half_jpy']:+.0f} 円）／"
+                  f"後半 {m['second_half']['trades']} 回・合計 {m['second_half']['net_pnl_jpy']:+.0f} 円（平均 {m['expectancy_second_half_jpy']:+.0f} 円）",
                   f"- 停止 {m['halts']} 回（うちルール違反 {m['rule_violations']} 回。検証では翌営業日に自動解除）、保有中の欠損日 {m['data_gaps']} 日、評価額と損益の差 {m['consistency_diff_jpy']:.0f} 円",
                   f"- 無効理由: {j.get('invalid')}" if j.get("invalid") else "- データ: 有効",
                   f"- イベント: {m['events']}", "", "| 年 | 取引 | 損益(円) |", "|---|---|---|"]

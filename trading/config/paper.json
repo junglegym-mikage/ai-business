@@ -1,0 +1,34 @@
+{
+  "_note": "ペーパートレード（模擬）の設定。事前登録：2026-10-29。結果を見て変更した場合は変更理由と日付を docs/trading に記録すること。",
+  "start_date": "2026-10-29",
+  "risk_budget_per_trade_jpy": "500",
+  "risk": {
+    "capital_jpy": 50000,
+    "max_loss_per_trade_pct": "0.02",
+    "max_daily_loss_pct": "0.05",
+    "max_position_pct": "0.50",
+    "est_cost_rate": "0.001"
+  },
+  "broker": {
+    "slippage_rate": "0.0005",
+    "fx_buffer": "0.03"
+  },
+  "strategy": {
+    "name": "baseline-trend-breakout",
+    "trend_window": 200,
+    "breakout_window": 20,
+    "exit_window": 50,
+    "atr_window": 20,
+    "atr_multiple": "2"
+  },
+  "universe": [
+    {"symbol": "1306.T", "currency": "JPY", "name": "TOPIX連動ETF"},
+    {"symbol": "1475.T", "currency": "JPY", "name": "iシェアーズ TOPIX ETF"},
+    {"symbol": "1343.T", "currency": "JPY", "name": "東証REIT指数ETF"},
+    {"symbol": "1326.T", "currency": "JPY", "name": "金価格連動ETF"},
+    {"symbol": "SPLG", "currency": "USD", "name": "S&P500 ETF"},
+    {"symbol": "SCHD", "currency": "USD", "name": "米国高配当ETF"},
+    {"symbol": "VEA", "currency": "USD", "name": "先進国株ETF"},
+    {"symbol": "GLDM", "currency": "USD", "name": "金ETF"}
+  ]
+}

@@ -179,6 +179,17 @@ class RiskManager:
         if symbol in self._positions:
             self._positions[symbol].mark_price = price
 
+    def restore(
+        self, positions: dict[str, tuple[int, Decimal, Decimal, Decimal | None]], daily_realized_pnl: Decimal
+    ) -> None:
+        """保存した状態から復元する（再起動後用）。positions: 銘柄 → (数量, 平均取得価格, 評価価格, 損切り価格)。"""
+        self._positions = {
+            s: Position(quantity=q, avg_price=a, mark_price=m, stop_price=st)
+            for s, (q, a, m, st) in positions.items()
+            if q != 0
+        }
+        self._daily_realized_pnl = Decimal(daily_realized_pnl)
+
     def start_new_day(self, day: dt.date) -> bool:
         """取引日が進んだときだけ日次確定損益をリセットする。リセットしたら True。"""
         if day <= self.trading_day:

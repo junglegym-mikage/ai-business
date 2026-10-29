@@ -86,7 +86,8 @@ def build(cfg: dict) -> tuple[list[Instrument], RiskLimits, BrokerConfig, Strate
     return instruments, limits, bcfg, params
 
 
-def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Path) -> PaperBroker:
+def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Path, auto_resume: bool = False) -> PaperBroker:
+    """auto_resume は過去データ検証専用：停止しても翌営業日に自動解除して検証を続け、回数を記録する。"""
     assert_paper_mode()
     cfg = load_config(config_path)
     instruments, limits, bcfg, params = build(cfg)
@@ -125,6 +126,9 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
     equity_rows = []
     uses_usd = any(i.currency == "USD" for i in instruments)
     for day in days:
+        if auto_resume and broker.halted and not broker.frozen:
+            broker._event("auto_resumed", "", f"検証用の自動解除（停止理由: {broker.halted}）", day)
+            broker.resume()
         horizon = _processing_horizon(broker, history, markets)
         if horizon is not None and day > horizon:
             broker._event("waiting_data", "", f"保有市場の足が {horizon} までのため、{day} 以降は次回処理", day)
@@ -138,6 +142,10 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
             fx_open = fx_close = Decimal(1)
         todays = {s: b for s, bars in history.items() for b in bars if b.date == day}
         gaps = _held_gaps(broker, todays, day, markets)
+        if gaps and auto_resume:
+            # 過去データ検証では、過去の欠損日は二度と埋まらないので記録して進む（運用時は中断する）
+            broker._event("data_gap", ",".join(gaps), f"{day} の保有銘柄の足が欠損（検証では続行）", day)
+            gaps = []
         if gaps:
             # 同じ市場の他銘柄には足があるのに保有銘柄にだけない＝配信遅れ。損切り未判定のまま進めない
             broker._event("run_aborted", ",".join(gaps), f"{day} の保有銘柄の足が未配信のため、この日以降は次回処理")

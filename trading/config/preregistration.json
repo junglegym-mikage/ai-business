@@ -1,0 +1,15 @@
+{
+  "_note": "事前登録：過去データ検証の前に固定する内容。ホールドアウト（holdout_start 以降）はこのファイルをコミットした後、--final でのみ開ける。結果を見て変更した場合はホールドアウトを最終評価に使わない（docs/trading/real-money-plan.md）。",
+  "registered": "2026-10-29",
+  "strategy_config": "config/paper.json",
+  "holdout_start": "2024-10-29",
+  "development_period": {"start": "2010-01-01", "end": "2024-10-28"},
+  "markets_evaluated_separately": ["JP", "US"],
+  "pass_criteria": {
+    "min_trades": 100,
+    "expectancy_after_costs_jpy_gt": 0,
+    "profit_factor_min": 1.2,
+    "max_drawdown_pct_max": 10,
+    "stability": "前半・後半の両方で期待値がプラス"
+  }
+}

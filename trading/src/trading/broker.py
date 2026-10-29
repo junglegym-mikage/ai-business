@@ -99,6 +99,7 @@ class PaperBroker:
         self.limit_hit_streak = 0
         self.last_date: dt.date | None = None
         self.entry_costs: dict[str, Decimal] = {}  # 保有ポジションにかかったエントリーコスト（円）
+        self.frozen: dict[str, str] = {}  # 銘柄 → 凍結理由。凍結中は約定・損切り・評価・新規注文をすべて止める
 
     # ------------------------------------------------------------------ 入口
     def submit(self, order: PendingOrder, fx: Decimal = Decimal(1)) -> tuple[bool, str]:
@@ -108,6 +109,8 @@ class PaperBroker:
             return self._reject(order, "未登録の銘柄")
         if order.client_id in self.seen_client_ids:
             return self._reject(order, "重複注文（同じ client_id）")
+        if order.symbol in self.frozen:
+            return self._reject(order, f"凍結中の銘柄: {self.frozen[order.symbol]}")
         pos = self.risk.position(order.symbol)
         signed = order.quantity if order.side == "buy" else -order.quantity
         increasing = pos.quantity == 0 or (pos.quantity > 0) == (signed > 0)
@@ -124,8 +127,18 @@ class PaperBroker:
         return True, ""
 
     def halt(self, day: dt.date, reason: str) -> None:
-        """外部の安全判定（企業行動の検出など）で停止する。"""
+        """外部の安全判定で停止する。"""
         self._halt(day, reason)
+
+    def freeze(self, day: dt.date, symbol: str, reason: str) -> None:
+        """銘柄を凍結し、全体も停止する。数量・損切り価格をオーナーが調整して unfreeze() するまで処理しない。"""
+        self.frozen[symbol] = reason
+        self._event("frozen", symbol, reason, day)
+        self._halt(day, f"{symbol} を凍結: {reason}")
+
+    def unfreeze(self, symbol: str) -> None:
+        """凍結を解除する（オーナーが数量・損切り価格を調整した後にだけ呼ぶ）。"""
+        self.frozen.pop(symbol, None)
 
     def resume(self) -> None:
         """停止を解除する（オーナーの判断でのみ呼ぶ）。"""
@@ -146,6 +159,7 @@ class PaperBroker:
             self._close_day(self.last_date)
         self.risk.start_new_day(day)
         self.last_date = day
+        bars = {s: b for s, b in bars.items() if s not in self.frozen}
 
         orders, self.pending = self.pending, []
         for order in orders:
@@ -322,7 +336,7 @@ class PaperBroker:
     # ----------------------------------------------------- 保存と復元
     def to_dict(self) -> dict:
         return {
-            "version": 1,
+            "version": 2,
             "cash": str(self.cash),
             "trading_day": str(self.risk.trading_day),
             "last_date": str(self.last_date) if self.last_date else None,
@@ -340,6 +354,7 @@ class PaperBroker:
             "halted": self.halted,
             "limit_hit_streak": self.limit_hit_streak,
             "entry_costs": {s: str(v) for s, v in self.entry_costs.items()},
+            "frozen": self.frozen,
             "events": [asdict(e) for e in self.events],
             "trades": self.trades,
         }
@@ -348,8 +363,9 @@ class PaperBroker:
     def from_dict(
         cls, data: dict, instruments: list[Instrument], limits: RiskLimits | None = None, config: BrokerConfig | None = None
     ) -> "PaperBroker":
-        if data.get("version") != 1:
-            raise ValueError("未対応の状態ファイル")
+        if data.get("version") != 2:
+            # 旧形式（エントリーコスト未記録）の保有を読み込むと損失判定が甘くなるため、移行せずに止める
+            raise ValueError("未対応の状態ファイル（version 2 のみ）。保有がある旧形式は手動で移行すること")
         b = cls(instruments, limits, config, start_day=dt.date.fromisoformat(data["trading_day"]))
         b.cash = Decimal(data["cash"])
         b.last_date = dt.date.fromisoformat(data["last_date"]) if data["last_date"] else None
@@ -369,7 +385,8 @@ class PaperBroker:
         b.seen_client_ids = set(data["seen_client_ids"])
         b.halted = data["halted"]
         b.limit_hit_streak = data["limit_hit_streak"]
-        b.entry_costs = {s: Decimal(v) for s, v in data.get("entry_costs", {}).items()}
+        b.entry_costs = {s: Decimal(v) for s, v in data["entry_costs"].items()}
+        b.frozen = dict(data["frozen"])
         b.events = [Event(**e) for e in data["events"]]
         b.trades = list(data["trades"])
         return b

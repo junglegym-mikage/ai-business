@@ -131,4 +131,19 @@ def test_split_like_divergence_halts_when_holding(tmp_path):
         w.writerows(rows)
     cfg = cfg_from(tmp_path, dates[210])
     b = run(cfg, data, tmp_path / "state")
-    assert "企業行動" in b.halted
+    assert "企業行動" in b.halted and "1306.T" in b.frozen
+    qty = b.risk.position("1306.T").quantity
+    n_trades = len(b.trades)
+    # 翌日以降も未調整価格（半値）が続いても、凍結中は損切りも評価も動かない
+    nxt = dt.date.fromisoformat(rows[-1]["date"]) + dt.timedelta(days=3)
+    rows.append({**rows[-1], "date": nxt.isoformat()})
+    with (data / "1306.T.csv").open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["date", "open", "high", "low", "close", "adj_close"])
+        w.writeheader()
+        w.writerows(rows)
+    fx_rows = list(csv.DictReader((data / "USDJPY.csv").open(encoding="utf-8")))
+    fx_rows.append({**fx_rows[-1], "date": nxt.isoformat()})
+    write_csv(data / "USDJPY.csv", fx_rows)
+    b2 = run(cfg, data, tmp_path / "state")
+    assert b2.risk.position("1306.T").quantity == qty and len(b2.trades) == n_trades
+    assert not any(e.kind == "rule_violation" for e in b2.events)

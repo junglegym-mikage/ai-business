@@ -104,8 +104,7 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
                 break
             fx_open = fx_close = Decimal(1)
         todays = {s: b for s, bars in history.items() for b in bars if b.date == day}
-        for s in _detect_corporate_actions(broker, history, adjusted, day):
-            todays.pop(s, None)  # 未調整価格が不連続な日は、その銘柄の約定・損切りを止めてオーナー確認に回す
+        _detect_corporate_actions(broker, history, adjusted, day)  # 検出した銘柄は凍結（以後の処理を止める）
         broker.process_day(day, todays, fx_open, fx_close)
         for inst in instruments:
             bars = [b for b in adjusted.get(inst.symbol, []) if b.date <= day]
@@ -130,7 +129,7 @@ def _fx_before(fx_bars: list[Bar], day: dt.date) -> Decimal | None:
 def _detect_corporate_actions(broker, raw: dict, adj: dict, day: dt.date) -> list[str]:
     found = []
     for s, bars in raw.items():
-        if not broker.risk.position(s).quantity:
+        if not broker.risk.position(s).quantity or s in broker.frozen:
             continue
         r = [b for b in bars if b.date <= day][-2:]
         a = [b for b in adj.get(s, []) if b.date <= day][-2:]
@@ -138,7 +137,7 @@ def _detect_corporate_actions(broker, raw: dict, adj: dict, day: dt.date) -> lis
             continue
         ratio = (r[-1].close / r[0].close) / (a[-1].close / a[0].close)
         if abs(ratio - 1) > Decimal("0.10"):
-            broker.halt(day, f"{s} で分割などの企業行動の可能性（未調整と調整済みの値動きが乖離）")
+            broker.freeze(day, s, "分割などの企業行動の可能性（未調整と調整済みの値動きが乖離）")
             found.append(s)
     return found
 
@@ -151,6 +150,8 @@ def _fx_on(fx_bars: list[Bar], day: dt.date) -> Decimal | None:
 
 
 def _decide(broker, inst, bars, day, fx, params, risk_budget, bcfg) -> None:
+    if inst.symbol in broker.frozen:
+        return
     pos = broker.risk.position(inst.symbol)
     pending = any(p.symbol == inst.symbol for p in broker.pending)
     if pending:

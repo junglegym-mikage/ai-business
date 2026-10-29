@@ -267,3 +267,23 @@ def test_entry_costs_survive_state_round_trip():
     b.process_day(D1, {"1306.T": bar(D1, 3000)}, D(150))
     r = PaperBroker.from_dict(json.loads(json.dumps(b.to_dict())), [JP, US], b.limits, b.config)
     assert r.entry_costs == b.entry_costs
+
+
+def test_frozen_symbol_is_not_processed_and_rejects_orders():
+    b = broker()
+    b.submit(buy(qty=5, dist="40"))
+    b.process_day(D1, {"1306.T": bar(D1, 3000)}, D(150))
+    b.freeze(D1, "1306.T", "分割の疑い")
+    b.process_day(D2, {"1306.T": bar(D2, 1500, 1510, 1490, 1500)}, D(150))  # 分割後の価格
+    assert b.risk.position("1306.T").quantity == 5 and "1306.T" in b.stops
+    assert not any(e.kind == "rule_violation" for e in b.events)
+    assert not b.submit(sell("x2", qty=5))[0]
+    r = PaperBroker.from_dict(json.loads(json.dumps(b.to_dict())), [JP, US], b.limits, b.config)
+    assert "1306.T" in r.frozen
+
+
+def test_old_state_version_is_refused():
+    data = broker().to_dict()
+    data["version"] = 1
+    with pytest.raises(ValueError):
+        PaperBroker.from_dict(data, [JP, US])

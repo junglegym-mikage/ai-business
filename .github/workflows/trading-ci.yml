@@ -51,11 +51,13 @@ jobs:
 
       - name: Job summary
         if: always()
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           {
             echo "## trading-ci テスト結果"
             echo ""
-            echo "- コミット: \`${GITHUB_SHA::7}\`"
+            echo "- コミット: \`${HEAD_SHA::7}\`"
             echo "- 結果: **${{ steps.tests.outcome }}**"
             echo ""
             echo '```'

@@ -5,19 +5,52 @@
  "prereg_commit": null,
  "markets": {
   "JP": {
-   "trades": 0,
-   "net_pnl_jpy": 0.0,
-   "expectancy_jpy": 0.0,
-   "win_rate_pct": 0.0,
-   "profit_factor": null,
-   "max_drawdown_pct": 0.0,
-   "final_equity_jpy": 50000.0,
-   "expectancy_first_half_jpy": 0.0,
-   "expectancy_second_half_jpy": 0.0,
-   "by_year": {},
+   "trades": 90,
+   "net_pnl_jpy": 17277.73,
+   "expectancy_jpy": 191.97477777777777,
+   "win_rate_pct": 28.9,
+   "profit_factor": 1.792,
+   "max_drawdown_pct": 11.93,
+   "final_equity_jpy": 68696.36,
+   "expectancy_first_half_jpy": 413.3962222222222,
+   "expectancy_second_half_jpy": -29.446666666666665,
+   "by_year": {
+    "2010": {
+     "trades": 13,
+     "net_pnl_jpy": -4216.16
+    },
+    "2011": {
+     "trades": 10,
+     "net_pnl_jpy": 3018.31
+    },
+    "2012": {
+     "trades": 9,
+     "net_pnl_jpy": 924.67
+    },
+    "2013": {
+     "trades": 8,
+     "net_pnl_jpy": 19902.51
+    },
+    "2014": {
+     "trades": 14,
+     "net_pnl_jpy": -763.16
+    },
+    "2015": {
+     "trades": 11,
+     "net_pnl_jpy": 971.66
+    },
+    "2016": {
+     "trades": 12,
+     "net_pnl_jpy": -3433.36
+    },
+    "2017": {
+     "trades": 13,
+     "net_pnl_jpy": 873.26
+    }
+   },
    "period": [
-    "2010-01-01",
-    "2024-10-01"
+    "2010-01-04",
+    "2017-07-14"
    ],
    "symbols": [
     "1306.T",
@@ -26,30 +59,101 @@
     "1326.T"
    ],
    "halted": "",
-   "events": {},
+   "events": {
+    "accepted": 227,
+    "cancelled": 78,
+    "filled": 149,
+    "run_aborted": 1,
+    "stop": 27,
+    "stop_gap": 6
+   },
    "judgement": {
     "checks": {
      "取引回数": false,
-     "期待値プラス": false,
-     "プロフィットファクター": false,
-     "最大ドローダウン": true,
+     "期待値プラス": true,
+     "プロフィットファクター": true,
+     "最大ドローダウン": false,
      "前後半とも期待値プラス": false
     },
     "pass": false
    }
   },
   "US": {
-   "trades": 0,
-   "net_pnl_jpy": 0.0,
-   "expectancy_jpy": 0.0,
-   "win_rate_pct": 0.0,
-   "profit_factor": null,
-   "max_drawdown_pct": 0.0,
-   "final_equity_jpy": 50000.0,
-   "expectancy_first_half_jpy": 0.0,
-   "expectancy_second_half_jpy": 0.0,
-   "by_year": {},
-   "period": null,
+   "trades": 125,
+   "net_pnl_jpy": 2062.31,
+   "expectancy_jpy": 16.49848,
+   "win_rate_pct": 36.0,
+   "profit_factor": 1.062,
+   "max_drawdown_pct": 16.57,
+   "final_equity_jpy": 55152.69,
+   "expectancy_first_half_jpy": -5.084677419354839,
+   "expectancy_second_half_jpy": 37.73904761904762,
+   "by_year": {
+    "2010": {
+     "trades": 8,
+     "net_pnl_jpy": -661.23
+    },
+    "2011": {
+     "trades": 5,
+     "net_pnl_jpy": -1549.07
+    },
+    "2012": {
+     "trades": 7,
+     "net_pnl_jpy": -1059.95
+    },
+    "2013": {
+     "trades": 7,
+     "net_pnl_jpy": 1705.07
+    },
+    "2014": {
+     "trades": 10,
+     "net_pnl_jpy": 2808.58
+    },
+    "2015": {
+     "trades": 3,
+     "net_pnl_jpy": 438.23
+    },
+    "2016": {
+     "trades": 6,
+     "net_pnl_jpy": -2014.28
+    },
+    "2017": {
+     "trades": 7,
+     "net_pnl_jpy": 1926.79
+    },
+    "2018": {
+     "trades": 10,
+     "net_pnl_jpy": -1907.06
+    },
+    "2019": {
+     "trades": 6,
+     "net_pnl_jpy": -549.24
+    },
+    "2020": {
+     "trades": 13,
+     "net_pnl_jpy": -2989.46
+    },
+    "2021": {
+     "trades": 10,
+     "net_pnl_jpy": 4261.92
+    },
+    "2022": {
+     "trades": 8,
+     "net_pnl_jpy": -232.0
+    },
+    "2023": {
+     "trades": 11,
+     "net_pnl_jpy": 1151.26
+    },
+    "2024": {
+     "trades": 14,
+     "net_pnl_jpy": 732.75
+    }
+   },
+   "period": [
+    "2010-01-04",
+    "2024-10-28"
+   ],
    "symbols": [
     "SPYM",
     "SCHD",
@@ -58,14 +162,22 @@
    ],
    "halted": "",
    "events": {
-    "data_missing": 1
+    "accepted": 1417,
+    "auto_resumed": 3,
+    "cancelled": 1222,
+    "filled": 195,
+    "halted": 3,
+    "rejected": 1,
+    "rule_violation": 3,
+    "stop": 35,
+    "stop_gap": 22
    },
    "judgement": {
     "checks": {
-     "取引回数": false,
-     "期待値プラス": false,
+     "取引回数": true,
+     "期待値プラス": true,
      "プロフィットファクター": false,
-     "最大ドローダウン": true,
+     "最大ドローダウン": false,
      "前後半とも期待値プラス": false
     },
     "pass": false

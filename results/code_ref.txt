@@ -1,1 +1,1 @@
-trading/issue-8-backtest @ 6da9212
+trading/issue-8-backtest @ 6c49a6b

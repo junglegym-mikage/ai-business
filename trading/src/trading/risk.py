@@ -4,8 +4,13 @@
 - 1 トレードの最大損失（エントリーから損切りまでの損失額）: 資金の 2%
 - 1 日の最大損失: 資金の 5%
   「その日の確定損益（手数料込み）＋ 保有ポジションの含み損益」で判定する。
+  含み損益は取得時からの累計で数える（前日からの持ち越し分も含む＝保守的な扱い）。
   到達したらその日の新規・買い増し注文を拒否する（決済・縮小注文は許可）。
 - 1 銘柄あたりの最大ポジション金額（約定後の想定）: 資金の 50%
+
+1 トレードの損失は「約定後のポジション全体」で判定する。買い増しのときは、
+新しい注文の損切り価格をポジション全体の損切り価格として扱い、
+（平均取得価格 − 損切り価格）× 保有数量 が上限以内かを見る。
 
 ポジションは銘柄ごとに「符号付き数量（買い＝正、空売り＝負）」と平均取得価格で持つ。
 決済で数量が減り、確定損益が自動で日次損益に加算される。
@@ -78,6 +83,7 @@ class Position:
     quantity: int = 0  # 買い＝正、空売り＝負
     avg_price: Decimal = ZERO
     mark_price: Decimal = ZERO  # 含み損益の評価に使う直近価格
+    stop_price: Decimal | None = None  # ポジション全体の損切り価格
 
     @property
     def unrealized_pnl(self) -> Decimal:
@@ -132,6 +138,7 @@ class RiskManager:
             # 新規・買い増し：平均取得価格を更新
             total = pos.avg_price * abs(pos.quantity) + order.price * abs(delta)
             pos.avg_price = total / abs(new_qty)
+            pos.stop_price = order.stop_price
         else:
             if abs(delta) > abs(pos.quantity):
                 raise ValueError("ポジションを反転させる注文は受け付けない")
@@ -196,9 +203,11 @@ class RiskManager:
         if -self.daily_pnl >= self.max_daily_loss:
             return Decision(False, f"1日の損失（確定＋含み）が上限 {self.max_daily_loss} 円に達しているため新規注文不可")
 
-        loss = abs(order.price - order.stop_price) * order.quantity
+        loss = self.position_loss_at_stop(pos, order)
         if loss > self.max_loss_per_trade:
-            return Decision(False, f"1トレードの想定損失 {loss} 円が上限 {self.max_loss_per_trade} 円を超過")
+            return Decision(
+                False, f"1トレードの想定損失（約定後のポジション全体）{loss} 円が上限 {self.max_loss_per_trade} 円を超過"
+            )
 
         exposure = abs(new_qty) * order.price
         if exposure > self.max_position_value:
@@ -207,6 +216,15 @@ class RiskManager:
             )
 
         return Decision(True)
+
+    @staticmethod
+    def position_loss_at_stop(pos: Position, order: Order) -> Decimal:
+        """新規・買い増しが約定した後、損切り価格で全量決済したときの損失（0 以上）。"""
+        new_qty = pos.quantity + order.signed_quantity
+        total = pos.avg_price * abs(pos.quantity) + order.price * order.quantity
+        new_avg = total / abs(new_qty)
+        loss = (new_avg - order.stop_price) * new_qty  # 買い: 正の数量, 空売り: 負の数量
+        return max(loss, ZERO)
 
     @staticmethod
     def _validate_basic(order: Order) -> str:

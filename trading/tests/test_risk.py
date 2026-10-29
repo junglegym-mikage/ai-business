@@ -142,6 +142,31 @@ def test_average_price_on_add():
     assert rm.position("7203").avg_price == Decimal(1050)
 
 
+def test_add_on_checks_whole_position_risk():
+    rm = make()
+    rm.record_fill(buy(qty=10, price=1000, stop=975))  # 損失 250
+    # 1,050 で 5 株買い増し、全体の損切り 975：平均 1,016.67 × 15 株 → 損失 625 → 許可
+    assert rm.check(buy(qty=5, price=1050, stop=975)).accepted
+    # 損切り 900 で 5 株買い増し：新規分だけなら (1050-900)*5 = 750 で通るが、
+    # 全体では (1016.67-900)*15 = 1,750 → 拒否
+    d = rm.check(buy(qty=5, price=1050, stop=900))
+    assert not d.accepted and "全体" in d.reason
+
+
+def test_add_on_with_raised_stop_reduces_risk():
+    rm = make()
+    rm.record_fill(buy(qty=10, price=1000, stop=950))
+    # 損切りを 1,040 に引き上げて 10 株買い増し：平均 1,025 < 損切り → 損失 0 → 許可
+    assert rm.check(buy(qty=10, price=1050, stop=1040)).accepted
+
+
+def test_short_add_on_checks_whole_position_risk():
+    rm = make()
+    rm.record_fill(sell("AAPL", 10, 1000, stop=1050))  # 損失 500
+    d = rm.check(sell("AAPL", 10, 1000, stop=1060))  # 全体 20 株 × 60 = 1,200 → 拒否
+    assert not d.accepted
+
+
 def test_entry_without_stop_is_rejected():
     d = make().check(buy(stop=None))
     assert not d.accepted and "損切り" in d.reason
@@ -191,6 +216,17 @@ def test_daily_limit_persists_until_next_trading_day():
     assert not rm.check(buy()).accepted
     assert rm.start_new_day(DAY2) is True
     assert rm.check(buy()).accepted
+
+
+def test_carried_unrealized_loss_still_counts_after_new_day():
+    """仕様：含み損益は取得時からの累計で数える（持ち越しの含み損は日付が変わっても消えない）。"""
+    rm = make()
+    rm.record_fill(buy("AAPL", qty=20, price=1000, stop=950))
+    rm.update_mark("AAPL", Decimal(870))  # 含み損 2,600
+    assert rm.start_new_day(DAY2) is True
+    assert rm.daily_realized_pnl == 0
+    assert rm.daily_pnl == Decimal(-2600)
+    assert not rm.check(buy()).accepted
 
 
 def test_profit_offsets_loss_within_day():

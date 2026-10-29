@@ -179,3 +179,86 @@ def test_gap_days_are_counted_once_per_day(tmp_path):
     cfg, data, rows = _synthetic(tmp_path, gap_rows=range(240, 243))
     m = evaluate_market(cfg, "JP", data, dt.date.fromisoformat(rows[210]["date"]), dt.date.fromisoformat(rows[-1]["date"]), tmp_path / "w")
     assert m["data_gaps"] == 3
+
+
+def test_preregistration_pins_current_config():
+    import hashlib
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    pre = json.loads((root / "config" / "preregistration.json").read_text(encoding="utf-8"))
+    assert pre["strategy_config_sha256"] == hashlib.sha256((root / "config" / "paper.json").read_bytes()).hexdigest()
+    assert pre["final_markets"] == ["JP"]
+
+
+def test_holdout_criteria_skip_halves_and_require_no_violations():
+    m = {"trades": 12, "expectancy_jpy": 50.0, "profit_factor": 1.5, "max_drawdown_pct": 5.0,
+         "expectancy_first_half_jpy": -10.0, "expectancy_second_half_jpy": 80.0, "rule_violations": 0}
+    crit = {"min_trades": 10, "expectancy_after_costs_jpy_gt": 0, "profit_factor_min": 1.2, "max_drawdown_pct_max": 10, "halves_required": False}
+    assert judge(m, crit)["pass"]
+    assert not judge({**m, "rule_violations": 1}, crit)["pass"]
+
+
+def test_preregistration_pins_current_code():
+    from trading.backtest import code_sha256
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    pre = json.loads((root / "config" / "preregistration.json").read_text(encoding="utf-8"))
+    assert pre["code_sha256"] == code_sha256(root / "src" / "trading")
+
+
+def test_code_hash_changes_when_code_changes(tmp_path):
+    from trading.backtest import code_sha256
+
+    (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
+    h1 = code_sha256(tmp_path)
+    (tmp_path / "a.py").write_text("x = 2\n", encoding="utf-8")
+    assert code_sha256(tmp_path) != h1
+
+
+def test_holdout_lock_allows_only_one_attempt(tmp_path):
+    from trading.backtest import acquire_holdout_lock
+
+    lock = tmp_path / "results" / "holdout.lock"
+    acquire_holdout_lock(lock)
+    assert lock.exists()
+    with pytest.raises(SystemExit):
+        acquire_holdout_lock(lock)  # 失敗後の再実行・2回目も拒否
+
+
+def _run_final(out, config, commit):
+    import subprocess
+    import sys
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    return subprocess.run(
+        [sys.executable, "-m", "trading.backtest", "--config", str(config), "--prereg", str(root / "config" / "preregistration.json"),
+         "--data", str(out / "data"), "--out", str(out), "--final", "--prereg-commit", commit],
+        cwd=root, capture_output=True, text=True, env={**__import__("os").environ, "PYTHONPATH": str(root / "src")},
+    )
+
+
+def test_final_mode_end_to_end_runs_once_and_checks_hashes(tmp_path):
+    """実際の --final：事前登録コミット・設定ハッシュ・コードハッシュを照合し、1回目は実行、2回目は拒否。"""
+    import subprocess
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True)
+    dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "config", "src"], capture_output=True, text=True)
+    if head.returncode != 0 or dirty.stdout.strip():
+        pytest.skip("コミット済みのクリーンな作業ツリーでのみ実行（CI）")
+    (tmp_path / "data").mkdir()
+    cfg = root / "config" / "paper.json"
+    r1 = _run_final(tmp_path, cfg, head.stdout.strip())
+    assert r1.returncode == 0, r1.stderr
+    assert (tmp_path / "holdout.lock").exists() and (tmp_path / "report_holdout.md").exists()
+    r2 = _run_final(tmp_path, cfg, head.stdout.strip())
+    assert r2.returncode != 0 and "既に評価" in r2.stderr
+    # 設定を変えたコピーでは開けない
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "data").mkdir()
+    changed = tmp_path / "changed.json"
+    changed.write_text(cfg.read_text(encoding="utf-8").replace('"300"', '"301"'), encoding="utf-8")
+    r3 = _run_final(other, changed, head.stdout.strip())
+    assert r3.returncode != 0 and "設定ファイル" in r3.stderr
+    assert not (other / "holdout.lock").exists()  # 照合に失敗したらロックも作らない

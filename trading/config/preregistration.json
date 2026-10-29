@@ -1,15 +1,37 @@
 {
   "_note": "事前登録：過去データ検証の前に固定する内容。ホールドアウト（holdout_start 以降）はこのファイルをコミットした後、--final でのみ開ける。結果を見て変更した場合はホールドアウトを最終評価に使わない（docs/trading/real-money-plan.md）。",
-  "registered": "2026-10-29",
+  "registered": "2026-10-29（変種2で更新。ホールドアウト未開封の時点）",
   "strategy_config": "config/paper.json",
   "holdout_start": "2024-10-29",
-  "development_period": {"start": "2010-01-01", "end": "2024-10-28"},
-  "markets_evaluated_separately": ["JP", "US"],
+  "development_period": {
+    "start": "2010-01-01",
+    "end": "2024-10-28"
+  },
+  "markets_evaluated_separately": [
+    "JP",
+    "US"
+  ],
   "pass_criteria": {
     "min_trades": 100,
     "expectancy_after_costs_jpy_gt": 0,
     "profit_factor_min": 1.2,
     "max_drawdown_pct_max": 10,
-    "stability": "前半・後半の両方で期待値がプラス"
-  }
+    "stability": "前半・後半の両方で期待値がプラス",
+    "halves_required": true
+  },
+  "strategy_config_sha256": "59fabd2928227be46744aa00cd2ba9f025e89e839dc493acf6cb4643a4e17825",
+  "variant": "2: リスク予算300円（docs/trading/variants.md）",
+  "final_markets": [
+    "JP"
+  ],
+  "holdout_pass_criteria": {
+    "min_trades": 10,
+    "expectancy_after_costs_jpy_gt": 0,
+    "profit_factor_min": 1.2,
+    "max_drawdown_pct_max": 10,
+    "halves_required": false,
+    "_note": "ホールドアウトは約2年で取引数が少ないため、取引10回以上とし、前後半の安定性は判定に使わない（記録のみ）。ルール違反は0回であること。"
+  },
+  "code_sha256": "df846ace5abc45c749476bd3f9cfaf852f0b3a4e72129425b11ce66729d4357d",
+  "_code_note": "code_sha256 = src/trading/*.py のハッシュ（backtest.code_sha256）。コードを変えたらホールドアウトは開けない"
 }

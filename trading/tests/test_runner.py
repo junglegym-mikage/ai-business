@@ -164,3 +164,24 @@ def test_stop_distance_is_converted_to_unadjusted_units(tmp_path):
     last_buy = [t for t in b.trades if t["side"] == "buy"][-1]
     # 実価格の ATR は 10（高安差 10）→ 損切り幅 20。調整済みのまま使うと 10 になってしまう
     assert b.stops["1306.T"].stop_price == D(last_buy["price"]) - D(20)
+
+
+def test_split_event_freezes_held_symbol_even_if_prices_are_back_adjusted(tmp_path):
+    """Yahoo は分割を遡って OHLC を調整するので、価格の乖離では検出できない。分割イベントで凍結する。"""
+    data, dates = make_data(tmp_path, 230)
+    cfg = cfg_from(tmp_path, dates[210])
+    b = run(cfg, data, tmp_path / "state")
+    assert b.risk.position("1306.T").quantity > 0
+    nxt = dates[-1] + dt.timedelta(days=1 if dates[-1].weekday() < 4 else 3)
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    rows.append({**rows[-1], "date": nxt.isoformat()})
+    write_csv(data / "1306.T.csv", rows)
+    fx = list(csv.DictReader((data / "USDJPY.csv").open(encoding="utf-8")))
+    fx.append({**fx[-1], "date": nxt.isoformat()})
+    write_csv(data / "USDJPY.csv", fx)
+    with (data / "1306.T.splits.csv").open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["date", "numerator", "denominator"])
+        w.writeheader()
+        w.writerow({"date": nxt.isoformat(), "numerator": 2, "denominator": 1})
+    b2 = run(cfg, data, tmp_path / "state")
+    assert "1306.T" in b2.frozen and "分割" in b2.halted

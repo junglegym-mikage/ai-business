@@ -6,7 +6,8 @@
 - data/<銘柄>.csv（date,open,high,low,close＝未調整の実際の価格、adj_close＝分割・配当調整済み終値）と
   data/USDJPY.csv を読む。約定・損切り・損益は未調整価格、売買判定は調整済み価格で行う
 - 米国株の約定は「前営業日の為替終値」（約定時点で分かっている値）、評価は当日の為替終値で円換算する
-- 分割などで未調整価格と調整済み価格の動きが10%以上ずれた日に保有があれば、安全のため停止する
+- 保有銘柄に分割イベント（data/<銘柄>.splits.csv）がある日、または価格と調整済み価格の動きが10%以上ずれた日は、
+  その銘柄を凍結して全体を停止する（Yahoo の OHLC は分割を遡って調整するため、保存済みの数量・損切りと単位がずれる）
 - state/state.json（なければ新規）を読み、前回処理日より後の営業日を古い順に 1 日ずつ処理する
 - 各日：①ブローカーが始値約定・損切りを処理 ②その日の終値までで売買判定 ③翌始値の注文を出す
 - state/state.json・trades.csv・equity.csv・report.md を書き出す
@@ -86,6 +87,7 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
     files = {i.symbol: data_dir / f"{i.symbol}.csv" for i in instruments if (data_dir / f"{i.symbol}.csv").exists()}
     history = {s: load_bars(p) for s, p in files.items()}  # 未調整（約定用）
     adjusted = {s: load_bars(p, adjusted=True) for s, p in files.items()}  # 調整済み（判定用）
+    splits = {s: _load_split_dates(data_dir / f"{s}.splits.csv") for s in files}
     fx_bars = load_bars(data_dir / "USDJPY.csv") if (data_dir / "USDJPY.csv").exists() else []
     missing = [i.symbol for i in instruments if i.symbol not in history]
     for m in missing:
@@ -104,7 +106,7 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
                 break
             fx_open = fx_close = Decimal(1)
         todays = {s: b for s, bars in history.items() for b in bars if b.date == day}
-        _detect_corporate_actions(broker, history, adjusted, day)  # 検出した銘柄は凍結（以後の処理を止める）
+        _detect_corporate_actions(broker, history, adjusted, splits, day)  # 検出した銘柄は凍結（以後の処理を止める）
         broker.process_day(day, todays, fx_open, fx_close)
         for inst in instruments:
             bars = [b for b in adjusted.get(inst.symbol, []) if b.date <= day]
@@ -129,10 +131,27 @@ def _fx_before(fx_bars: list[Bar], day: dt.date) -> Decimal | None:
     return prior[-1].close
 
 
-def _detect_corporate_actions(broker, raw: dict, adj: dict, day: dt.date) -> list[str]:
+def _load_split_dates(path: pathlib.Path) -> set[dt.date]:
+    if not path.exists():
+        return set()
+    out = set()
+    with path.open(encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            try:
+                out.add(dt.date.fromisoformat(row["date"]))
+            except (KeyError, ValueError):
+                continue
+    return out
+
+
+def _detect_corporate_actions(broker, raw: dict, adj: dict, splits: dict, day: dt.date) -> list[str]:
     found = []
     for s, bars in raw.items():
         if not broker.risk.position(s).quantity or s in broker.frozen:
+            continue
+        if day in splits.get(s, set()):
+            broker.freeze(day, s, f"{day} に株式分割（保有数量・損切り価格の調整が必要）")
+            found.append(s)
             continue
         r = [b for b in bars if b.date <= day][-2:]
         a = [b for b in adj.get(s, []) if b.date <= day][-2:]

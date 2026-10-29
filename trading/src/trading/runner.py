@@ -86,7 +86,8 @@ def build(cfg: dict) -> tuple[list[Instrument], RiskLimits, BrokerConfig, Strate
     return instruments, limits, bcfg, params
 
 
-def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Path) -> PaperBroker:
+def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Path, auto_resume: bool = False) -> PaperBroker:
+    """auto_resume は過去データ検証専用：停止しても翌営業日に自動解除して検証を続け、回数を記録する。"""
     assert_paper_mode()
     cfg = load_config(config_path)
     instruments, limits, bcfg, params = build(cfg)
@@ -125,6 +126,9 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
     equity_rows = []
     uses_usd = any(i.currency == "USD" for i in instruments)
     for day in days:
+        if auto_resume and broker.halted and not broker.frozen:
+            broker._event("auto_resumed", "", f"検証用の自動解除（停止理由: {broker.halted}）", day)
+            broker.resume()
         horizon = _processing_horizon(broker, history, markets)
         if horizon is not None and day > horizon:
             broker._event("waiting_data", "", f"保有市場の足が {horizon} までのため、{day} 以降は次回処理", day)

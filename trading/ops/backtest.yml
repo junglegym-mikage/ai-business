@@ -1,0 +1,58 @@
+name: backtest
+
+# 過去データ検証の実行。trading/backtest-runs ブランチの .github/workflows/ に置いて使う（原本は trading/ops/）。
+# 起動：trading/backtest-runs への push。request.txt の1行目に検証するコードのブランチ名を書く。
+# 結果（results/）は同じブランチに GITHUB_TOKEN でコミットする。ホールドアウトは開かない（--final は使わない）。
+
+on:
+  push:
+    branches: [trading/backtest-runs]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backtest
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TRADING_MODE: paper
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: trading/backtest-runs
+          path: runs
+      - name: Read requested code ref
+        id: req
+        run: echo "ref=$(head -n1 runs/request.txt | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.req.outputs.ref }}
+          path: code
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install and test
+        working-directory: code/trading
+        run: python -m pip install --upgrade pip && pip install -e ".[dev]" && python -m pytest -q
+      - name: Fetch long history
+        run: python code/trading/tools/fetch_data.py --config code/trading/config/paper.json --out data --range max
+      - name: Backtest (development period only)
+        working-directory: code/trading
+        run: |
+          python -m trading.backtest --config config/paper.json --prereg config/preregistration.json --data ../../data --out ../../runs/results
+          cat ../../runs/results/report_development.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit results
+        working-directory: runs
+        run: |
+          git config user.name "backtest-bot"
+          git config user.email "backtest-bot@users.noreply.github.com"
+          echo "${{ steps.req.outputs.ref }} @ $(git -C ../code rev-parse --short HEAD)" > results/code_ref.txt
+          git add results
+          git diff --cached --quiet || git commit -m "backtest: $(git -C ../code rev-parse --short HEAD) の過去データ検証結果"
+          git pull --rebase origin trading/backtest-runs
+          git push origin HEAD:trading/backtest-runs

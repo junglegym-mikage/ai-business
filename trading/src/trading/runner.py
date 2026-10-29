@@ -110,7 +110,10 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
             bars = [b for b in adjusted.get(inst.symbol, []) if b.date <= day]
             if not bars or bars[-1].date != day:
                 continue
-            _decide(broker, inst, bars, day, fx_close, params, risk_budget, bcfg)
+            raw_today = todays.get(inst.symbol)
+            if raw_today is None:
+                continue
+            _decide(broker, inst, bars, raw_today, day, fx_close, params, risk_budget, bcfg)
         equity_rows.append({"date": str(day), "equity_jpy": str(broker.equity.quantize(Decimal("0.01"))),
                             "cash_jpy": str(broker.cash.quantize(Decimal("0.01"))), "halted": broker.halted})
 
@@ -149,7 +152,8 @@ def _fx_on(fx_bars: list[Bar], day: dt.date) -> Decimal | None:
     return prior[-1].close
 
 
-def _decide(broker, inst, bars, day, fx, params, risk_budget, bcfg) -> None:
+def _decide(broker, inst, bars, raw_today, day, fx, params, risk_budget, bcfg) -> None:
+    """bars は調整済み（判定用）、raw_today は当日の未調整足（約定・損切りの単位）。"""
     if inst.symbol in broker.frozen:
         return
     pos = broker.risk.position(inst.symbol)
@@ -162,13 +166,16 @@ def _decide(broker, inst, bars, day, fx, params, risk_budget, bcfg) -> None:
     if sig.action == "exit" and pos.quantity > 0:
         broker.submit(PendingOrder(f"{day}-{inst.symbol}-exit", inst.symbol, "sell", pos.quantity, None, sig.note), fx)
     elif sig.action == "enter" and pos.quantity == 0:
+        # 調整済み価格で求めた損切り幅を、未調整（実際に約定する価格）の単位に戻す
+        to_raw = raw_today.close / bars[-1].close
+        stop_distance = sig.stop_distance * to_raw
         to_jpy = fx * (1 + bcfg.fx_buffer) if inst.currency == "USD" else Decimal(1)
-        price_jpy = bars[-1].close * to_jpy
-        qty = size_position(risk_budget, sig.stop_distance * to_jpy, price_jpy, broker.risk.max_position_value)
+        price_jpy = raw_today.close * to_jpy
+        qty = size_position(risk_budget, stop_distance * to_jpy, price_jpy, broker.risk.max_position_value)
         if qty <= 0:
             broker._event("skipped", inst.symbol, "1株でも上限・リスク予算を超えるため見送り", day)
             return
-        broker.submit(PendingOrder(f"{day}-{inst.symbol}-enter", inst.symbol, "buy", qty, sig.stop_distance, sig.note), fx)
+        broker.submit(PendingOrder(f"{day}-{inst.symbol}-enter", inst.symbol, "buy", qty, stop_distance, sig.note), fx)
 
 
 def _write_outputs(broker: PaperBroker, state_dir: pathlib.Path, equity_rows: list[dict], cfg: dict) -> None:

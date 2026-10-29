@@ -147,3 +147,20 @@ def test_split_like_divergence_halts_when_holding(tmp_path):
     b2 = run(cfg, data, tmp_path / "state")
     assert b2.risk.position("1306.T").quantity == qty and len(b2.trades) == n_trades
     assert not any(e.kind == "rule_violation" for e in b2.events)
+
+
+def test_stop_distance_is_converted_to_unadjusted_units(tmp_path):
+    data, dates = make_data(tmp_path, 230)
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    for r in rows:
+        r["adj_close"] = f"{float(r['close']) * 0.5:.6f}"  # 調整済みは実価格の半分（極端な例）
+    with (data / "1306.T.csv").open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["date", "open", "high", "low", "close", "adj_close"])
+        w.writeheader()
+        w.writerows(rows)
+    cfg = cfg_from(tmp_path, dates[210])
+    b = run(cfg, data, tmp_path / "state")
+    from decimal import Decimal as D
+    last_buy = [t for t in b.trades if t["side"] == "buy"][-1]
+    # 実価格の ATR は 10（高安差 10）→ 損切り幅 20。調整済みのまま使うと 10 になってしまう
+    assert b.stops["1306.T"].stop_price == D(last_buy["price"]) - D(20)

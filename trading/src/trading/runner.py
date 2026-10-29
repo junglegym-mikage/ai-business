@@ -51,7 +51,22 @@ def load_config(path: pathlib.Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+ALLOWED_MARKETS = {"JP", "US"}
+
+
+def _markets(cfg: dict) -> list[str]:
+    """各銘柄の市場コード（必須・JP/US のみ）。通貨からの推定はしない。"""
+    out = []
+    for u in cfg["universe"]:
+        m = u.get("market")
+        if m not in ALLOWED_MARKETS:
+            raise ValueError(f"{u.get('symbol')} の market が未指定または不正: {m!r}（{sorted(ALLOWED_MARKETS)} のいずれか）")
+        out.append(m)
+    return out
+
+
 def build(cfg: dict) -> tuple[list[Instrument], RiskLimits, BrokerConfig, StrategyParams]:
+    _markets(cfg)  # 起動時に検証
     instruments = [Instrument(i["symbol"], i["currency"]) for i in cfg["universe"]]
     r = cfg["risk"]
     limits = RiskLimits(
@@ -101,7 +116,7 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
         return broker
 
     after = broker.last_date or (start - dt.timedelta(days=1))
-    markets = {i["symbol"]: i.get("market") or ("US" if i["currency"] == "USD" else "JP") for i in cfg["universe"]}
+    markets = {i.symbol: m for i, m in zip(instruments, _markets(cfg))}
     days = sorted({b.date for bars in history.values() for b in bars if b.date > after and b.date >= start})
     # 保有中の銘柄がある市場は、その市場の最新足の日付までしか進めない。
     # 休場日は後の日付の足が届いた時点で「足がない＝休場」と確定できるため、取引所カレンダーなしで
@@ -145,8 +160,9 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
 
 
 def _processing_horizon(broker: PaperBroker, history: dict, markets: dict) -> dt.date | None:
-    """保有銘柄のある各市場について「その市場の最新足の日付」をとり、その最小値を返す（保有なしなら None）。"""
+    """保有銘柄または未約定注文のある各市場について「その市場の最新足の日付」をとり、その最小値を返す。"""
     held_markets = {markets[s] for s in broker.instruments if broker.risk.position(s).quantity and s not in broker.frozen}
+    held_markets |= {markets[o.symbol] for o in broker.pending if o.symbol in markets}
     if not held_markets:
         return None
     latest = []

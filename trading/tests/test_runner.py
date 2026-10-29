@@ -39,7 +39,7 @@ def make_data(tmp: pathlib.Path, days: int, last_close_drop: bool = False):
 def cfg_from(tmp: pathlib.Path, start: dt.date) -> pathlib.Path:
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     cfg["start_date"] = start.isoformat()
-    cfg["universe"] = [{"symbol": "1306.T", "currency": "JPY"}]
+    cfg["universe"] = [{"symbol": "1306.T", "currency": "JPY", "market": "JP"}]
     p = tmp / "cfg.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
     return p
@@ -190,7 +190,7 @@ def test_split_event_freezes_held_symbol_even_if_prices_are_back_adjusted(tmp_pa
 def test_missing_data_for_held_symbol_aborts_without_advancing(tmp_path):
     data, dates = make_data(tmp_path, 230)
     cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
-    cfg["universe"].append({"symbol": "SPLG", "currency": "USD"})
+    cfg["universe"].append({"symbol": "SPLG", "currency": "USD", "market": "US"})
     p = tmp_path / "cfg2.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
     rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
@@ -212,7 +212,7 @@ def test_missing_data_for_held_symbol_aborts_without_advancing(tmp_path):
 def test_partial_delay_of_held_symbol_stops_before_that_day(tmp_path):
     data, dates = make_data(tmp_path, 230)
     cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
-    cfg["universe"].append({"symbol": "1475.T", "currency": "JPY"})
+    cfg["universe"].append({"symbol": "1475.T", "currency": "JPY", "market": "JP"})
     p = tmp_path / "cfg3.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
     rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
@@ -232,7 +232,7 @@ def test_partial_delay_of_held_symbol_stops_before_that_day(tmp_path):
 def test_market_holiday_for_held_symbol_does_not_abort(tmp_path):
     data, dates = make_data(tmp_path, 230)
     cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
-    cfg["universe"].append({"symbol": "SPLG", "currency": "USD"})
+    cfg["universe"].append({"symbol": "SPLG", "currency": "USD", "market": "US"})
     p = tmp_path / "cfg4.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
     rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
@@ -275,3 +275,49 @@ def test_whole_market_delay_for_held_market_waits(tmp_path):
     assert b2.last_date == dates[-1]
     eq = (tmp_path / "state" / "equity.csv").read_text(encoding="utf-8").strip().splitlines()[1:]
     assert [l.split(",")[0] for l in eq][-2:] == [d.isoformat() for d in dates[-2:]]
+
+
+def test_market_is_required(tmp_path):
+    import pytest
+
+    data, dates = make_data(tmp_path, 230)
+    cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
+    for bad in (None, "jp", "EU"):
+        cfg["universe"][0].pop("market", None)
+        if bad:
+            cfg["universe"][0]["market"] = bad
+        p = tmp_path / "bad.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+        with pytest.raises(ValueError):
+            run(p, data, tmp_path / "state")
+
+
+def test_pending_order_market_delay_waits(tmp_path):
+    """米国の買い注文が未約定のまま米国の配信が遅れたら、日本の足だけで日付を進めない。"""
+    data, dates = make_data(tmp_path, 230)
+    cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
+    cfg["universe"] = [{"symbol": "SPLG", "currency": "USD", "market": "US"},
+                       {"symbol": "1475.T", "currency": "JPY", "market": "JP"}]
+    p = tmp_path / "cfg6.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    us = [{**r, "open": float(r["open"]) / 60, "high": float(r["high"]) / 60, "low": float(r["low"]) / 60,
+           "close": float(r["close"]) / 60} for r in rows]
+    write_csv(data / "1475.T.csv", [{**r, "open": 300, "high": 300, "low": 300, "close": 300} for r in rows])
+    # 米国のブレイクアウトで最終日の前日に買い注文が出る位置まで → 最終日の米国足は未配信
+    signal_day = None
+    for k in range(211, 230):
+        write_csv(data / "SPLG.csv", us[:k])
+        st = tmp_path / f"s{k}"
+        b = run(p, data, st)
+        if b.pending:
+            signal_day = k
+            break
+    assert signal_day is not None
+    assert b.last_date == dates[signal_day - 1]  # 日本の足は先まであるが、米国の注文が約定するまで進まない
+    assert any(e.kind == "waiting_data" for e in b.events)
+    # 米国の配信が追いつくと、注文は予定どおり翌営業日の始値で約定する
+    write_csv(data / "SPLG.csv", us)
+    b2 = run(p, data, tmp_path / f"s{signal_day}")
+    fill = [t for t in b2.trades if t["symbol"] == "SPLG"][0]
+    assert fill["date"] == dates[signal_day].isoformat()

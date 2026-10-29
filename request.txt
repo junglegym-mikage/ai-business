@@ -1,1 +1,1 @@
-trading/issue-8-backtest
+trading/variant-risk300

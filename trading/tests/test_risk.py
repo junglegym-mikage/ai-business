@@ -10,6 +10,8 @@ DAY2 = dt.date(2026, 10, 30)
 
 
 def make(capital=50_000, **kw):
+    """価格差だけの境界値を確かめるため、既定ではコスト率 0 で作る（コスト込みは専用テスト）。"""
+    kw.setdefault("est_cost_rate", Decimal(0))
     return RiskManager(RiskLimits(capital_jpy=capital, **kw), trading_day=DAY1)
 
 
@@ -22,9 +24,14 @@ def sell(symbol="7203", qty=10, price=1000, stop=None):
 
 
 def lose(rm, amount, symbol="LOSS"):
-    """amount 円の確定損失を模擬約定で発生させる。"""
-    rm.record_fill(Order(symbol, "buy", amount, Decimal(10), Decimal(9)))
-    rm.record_fill(Order(symbol, "sell", amount, Decimal(9)))
+    """amount 円の確定損失を模擬約定で発生させる（上限に触れないよう 1 株ずつの大きな値幅で）。"""
+    for _ in range(amount // 500):
+        rm.record_fill(Order(symbol, "buy", 1, Decimal(1000), Decimal(500)))
+        rm.record_fill(Order(symbol, "sell", 1, Decimal(500)))
+    rest = amount % 500
+    if rest:
+        rm.record_fill(Order(symbol, "buy", 1, Decimal(1000), Decimal(1000 - rest)))
+        rm.record_fill(Order(symbol, "sell", 1, Decimal(1000 - rest)))
 
 
 # --- 上限値 ----------------------------------------------------------
@@ -167,6 +174,35 @@ def test_short_add_on_checks_whole_position_risk():
     assert not d.accepted
 
 
+def test_position_stop_is_updated_on_add():
+    rm = make()
+    rm.record_fill(buy(qty=10, price=1000, stop=950))
+    rm.record_fill(buy(qty=10, price=1050, stop=1040))
+    assert rm.position("7203").stop_price == Decimal(1040)
+
+
+def test_record_fill_refuses_orders_that_check_rejects():
+    rm = make()
+    with pytest.raises(ValueError):
+        rm.record_fill(buy(qty=21, price=1000, stop=950))  # 損失 1,050
+    assert rm.position("7203").quantity == 0
+
+
+def test_default_cost_rate_is_included_in_trade_loss():
+    rm = RiskManager(RiskLimits(), trading_day=DAY1)  # 既定 0.1%
+    # 価格差だけなら 1,000 ちょうどで通るが、コスト (20,000+19,000)*0.001 = 39 円で超過
+    d = rm.check(buy(qty=20, price=1000, stop=950))
+    assert not d.accepted and "1トレード" in d.reason
+    # 19 株：950 + (19,000+18,050)*0.001 = 987.05 → 許可
+    assert rm.check(buy(qty=19, price=1000, stop=950)).accepted
+
+
+def test_invalid_cost_rate_is_rejected():
+    for bad in (Decimal(-0.1), Decimal(1), Decimal("NaN")):
+        with pytest.raises(ValueError):
+            RiskLimits(est_cost_rate=bad)
+
+
 def test_entry_without_stop_is_rejected():
     d = make().check(buy(stop=None))
     assert not d.accepted and "損切り" in d.reason
@@ -210,7 +246,8 @@ def test_costs_count_as_realized_loss():
 
 def test_daily_limit_persists_until_next_trading_day():
     rm = make()
-    lose(rm, 3000)
+    lose(rm, 2500)
+    rm.record_cost(Decimal(500))  # 合計 3,000 の確定損失
     assert rm.start_new_day(DAY1) is False  # 同じ日ではリセットしない
     assert rm.start_new_day(dt.date(2026, 10, 28)) is False  # 過去の日もしない
     assert not rm.check(buy()).accepted
@@ -231,9 +268,10 @@ def test_carried_unrealized_loss_still_counts_after_new_day():
 
 def test_profit_offsets_loss_within_day():
     rm = make()
-    lose(rm, 3000)
+    lose(rm, 2400)
     rm.record_fill(buy("GAIN", qty=10, price=1000, stop=950))
-    rm.record_fill(sell("GAIN", qty=10, price=1100))  # +1,000 → 累計 -2,000
+    rm.record_fill(sell("GAIN", qty=10, price=1100))  # +1,000 → 累計 -1,400
+    rm.record_cost(Decimal(1000))  # 累計 -2,400（上限未満）
     assert rm.check(buy()).accepted
 
 

@@ -8,9 +8,12 @@
   到達したらその日の新規・買い増し注文を拒否する（決済・縮小注文は許可）。
 - 1 銘柄あたりの最大ポジション金額（約定後の想定）: 資金の 50%
 
-1 トレードの損失は「約定後のポジション全体」で判定する。買い増しのときは、
-新しい注文の損切り価格をポジション全体の損切り価格として扱い、
-（平均取得価格 − 損切り価格）× 保有数量 が上限以内かを見る。
+1 トレードの損失は「約定後のポジション全体」で、想定コスト込みで判定する。
+買い増しのときは、新しい注文の損切り価格をポジション全体の損切り価格として扱い、
+（平均取得価格 − 損切り価格）× 保有数量 ＋ 想定コスト（今回の約定代金と損切り決済代金 × est_cost_rate）
+が上限以内かを見る。約定後、ポジションの損切り価格（Position.stop_price）は新しい値に更新される。
+損切り注文を実際に置く・維持するのは実行エンジンの責任で、損切りを設定できない場合は
+買い増しを実行しないこと。
 
 ポジションは銘柄ごとに「符号付き数量（買い＝正、空売り＝負）」と平均取得価格で持つ。
 決済で数量が減り、確定損益が自動で日次損益に加算される。
@@ -43,6 +46,9 @@ class RiskLimits:
     max_loss_per_trade_pct: Decimal = Decimal("0.02")
     max_daily_loss_pct: Decimal = Decimal("0.05")
     max_position_pct: Decimal = Decimal("0.50")
+    # 1 トレードの損失判定に含める想定コスト率（手数料＋スリッページ、片道・約定代金に対する割合）。
+    # エントリーと損切り決済の往復分を見込む。保守的な初期値 0.1%。
+    est_cost_rate: Decimal = Decimal("0.001")
 
     def __post_init__(self) -> None:
         if not isinstance(self.capital_jpy, int) or self.capital_jpy <= 0:
@@ -51,6 +57,9 @@ class RiskLimits:
             v = getattr(self, name)
             if not _finite_positive(v) or v > 1:
                 raise ValueError(f"{name} は 0 より大きく 1 以下の Decimal")
+        r = self.est_cost_rate
+        if not isinstance(r, Decimal) or not r.is_finite() or r < 0 or r >= 1:
+            raise ValueError("est_cost_rate は 0 以上 1 未満の Decimal")
 
 
 @dataclass(frozen=True)
@@ -124,11 +133,12 @@ class RiskManager:
     def record_fill(self, order: Order) -> Decimal:
         """模擬約定を反映し、この約定で確定した損益を返す。
 
-        check() で許可された注文だけを渡すこと。反転注文は例外にする。
+        新規・買い増しは check() を再実行し、許可されない注文は例外にする
+        （check() を通さずに直接呼ばれても上限を破れないようにする）。反転注文も例外。
         """
-        invalid = self._validate_basic(order)
-        if invalid:
-            raise ValueError(invalid)
+        decision = self.check(order)
+        if not decision.accepted:
+            raise ValueError(f"リスク判定で拒否された注文は約定できない: {decision.reason}")
         pos = self._positions.setdefault(order.symbol, Position())
         delta = order.signed_quantity
         new_qty = pos.quantity + delta
@@ -217,14 +227,14 @@ class RiskManager:
 
         return Decision(True)
 
-    @staticmethod
-    def position_loss_at_stop(pos: Position, order: Order) -> Decimal:
-        """新規・買い増しが約定した後、損切り価格で全量決済したときの損失（0 以上）。"""
+    def position_loss_at_stop(self, pos: Position, order: Order) -> Decimal:
+        """新規・買い増しが約定した後、損切り価格で全量決済したときの損失（コスト込み、0 以上）。"""
         new_qty = pos.quantity + order.signed_quantity
         total = pos.avg_price * abs(pos.quantity) + order.price * order.quantity
         new_avg = total / abs(new_qty)
-        loss = (new_avg - order.stop_price) * new_qty  # 買い: 正の数量, 空売り: 負の数量
-        return max(loss, ZERO)
+        price_loss = (new_avg - order.stop_price) * new_qty  # 買い: 正の数量, 空売り: 負の数量
+        cost = (order.price * order.quantity + order.stop_price * abs(new_qty)) * self.limits.est_cost_rate
+        return max(price_loss, ZERO) + cost
 
     @staticmethod
     def _validate_basic(order: Order) -> str:

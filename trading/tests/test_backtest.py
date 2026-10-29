@@ -137,7 +137,7 @@ def test_equity_and_trip_pnl_are_consistent_with_open_position(tmp_path):
     m = evaluate_market(cfg, "JP", data, dt.date.fromisoformat(rows[210]["date"]), dt.date.fromisoformat(rows[-1]["date"]), tmp_path / "w")
     assert m["open_at_end"] == ["1306.T"]  # 右肩上がりなので期末に保有が残る
     assert "invalid" not in m
-    assert m["consistency_diff_jpy"] <= 30  # 差は想定決済コスト程度
+    assert m["consistency_diff_jpy"] <= m["consistency_tolerance_jpy"]
 
 
 def test_many_data_gaps_invalidate_market(tmp_path):
@@ -146,3 +146,36 @@ def test_many_data_gaps_invalidate_market(tmp_path):
     assert m["data_gaps"] > 5
     j = judge(m, CRIT)
     assert not j["pass"] and "欠損日" in j["invalid"]
+
+
+def test_consistency_with_multiple_usd_positions_and_moving_fx(tmp_path):
+    """複数銘柄・為替変動・期末未決済でも、評価額と往復損益の差が想定決済コスト以内に収まる。"""
+    data = tmp_path / "data"
+    data.mkdir()
+    rows, fx, d, i = {"AAA": [], "BBB": []}, [], dt.date(2019, 1, 1), 0
+    while len(fx) < 400:
+        if d.weekday() < 5:
+            for sym, base, step in (("AAA", 20, 0.05), ("BBB", 30, 0.04)):
+                c = base + i * step + (2 if i % 37 == 0 else 0) - (3 if i % 53 == 0 else 0)  # ときどき急変（損切りも発生）
+                rows[sym].append({"date": d.isoformat(), "open": c, "high": c + 0.5, "low": c - 0.5, "close": c, "adj_close": c})
+            r = 140 + 10 * ((i % 60) / 60)  # 為替も動かす
+            fx.append({"date": d.isoformat(), "open": r, "high": r, "low": r, "close": r, "adj_close": r})
+            i += 1
+        d += dt.timedelta(days=1)
+    for name, rr in (("AAA.csv", rows["AAA"]), ("BBB.csv", rows["BBB"]), ("USDJPY.csv", fx)):
+        with (data / name).open("w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=list(rr[0]))
+            w.writeheader()
+            w.writerows(rr)
+    cfg = json.loads((pathlib.Path(__file__).resolve().parents[1] / "config" / "paper.json").read_text(encoding="utf-8"))
+    cfg["universe"] = [{"symbol": "AAA", "currency": "USD", "market": "US"}, {"symbol": "BBB", "currency": "USD", "market": "US"}]
+    m = evaluate_market(cfg, "US", data, dt.date.fromisoformat(fx[210]["date"]), dt.date.fromisoformat(fx[-1]["date"]), tmp_path / "w")
+    assert m["trades"] >= 2
+    assert "invalid" not in m, m.get("invalid")
+    assert m["consistency_diff_jpy"] <= m["consistency_tolerance_jpy"]
+
+
+def test_gap_days_are_counted_once_per_day(tmp_path):
+    cfg, data, rows = _synthetic(tmp_path, gap_rows=range(240, 243))
+    m = evaluate_market(cfg, "JP", data, dt.date.fromisoformat(rows[210]["date"]), dt.date.fromisoformat(rows[-1]["date"]), tmp_path / "w")
+    assert m["data_gaps"] == 3

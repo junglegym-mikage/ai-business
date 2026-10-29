@@ -159,12 +159,13 @@ def evaluate_market(cfg: dict, market: str, data_dir: pathlib.Path, start: dt.da
     m["events"] = {k: sum(1 for e in broker.events if e.kind == k) for k in sorted({e.kind for e in broker.events})}
     m["halts"] = m["events"].get("halted", 0)
     m["rule_violations"] = m["events"].get("rule_violation", 0)
-    m["data_gaps"] = m["events"].get("data_gap", 0)
+    m["data_gaps"] = len({e.date for e in broker.events if e.kind == "data_gap"})  # 欠損した営業日のユニーク数
     # 整合性：評価額の増減（含み損益込み）と往復損益の合計の差は、未決済分の想定決済コスト以内のはず
     capital = Decimal(cfg["risk"]["capital_jpy"])
     exit_cost = sum((abs(q) * mk * Decimal(cfg["risk"]["est_cost_rate"]) for q, _, mk in marks.values()), Decimal(0))
     diff = abs((Decimal(str(m["final_equity_jpy"])) - capital) - Decimal(str(m["net_pnl_jpy"])))
     m["consistency_diff_jpy"] = float(diff)
+    m["consistency_tolerance_jpy"] = float(exit_cost + 1)
     problems = []
     if missing:
         problems.append(f"データ欠損: {', '.join(missing)}")

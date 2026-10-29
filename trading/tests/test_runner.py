@@ -241,5 +241,37 @@ def test_market_holiday_for_held_symbol_does_not_abort(tmp_path):
     write_csv(data / "1306.T.csv", rows[:-1])  # 最終日は日本の休場、米国だけ取引
     write_csv(data / "SPLG.csv", us)
     b = run(p, data, tmp_path / "state")
-    assert b.last_date.isoformat() == holiday
+    # 日本の休場日かどうかは、日本の次の足が届くまで確定できないので、その日はまだ処理しない
+    assert b.last_date.isoformat() < holiday
     assert not any(e.kind == "run_aborted" for e in b.events)
+    # 日本の翌営業日の足が届くと、休場日（日本の足なし）として処理され、損切り未判定の日は生じない
+    nxt = (dt.date.fromisoformat(holiday) + dt.timedelta(days=1 if dt.date.fromisoformat(holiday).weekday() < 4 else 3)).isoformat()
+    write_csv(data / "1306.T.csv", rows[:-1] + [{**rows[-1], "date": nxt}])
+    write_csv(data / "SPLG.csv", us + [{**us[-1], "date": nxt}])
+    fx = list(csv.DictReader((data / "USDJPY.csv").open(encoding="utf-8")))
+    write_csv(data / "USDJPY.csv", fx + [{**fx[-1], "date": nxt}])
+    b2 = run(p, data, tmp_path / "state")
+    assert b2.last_date.isoformat() == nxt
+    assert not any(e.kind == "run_aborted" for e in b2.events)
+
+
+def test_whole_market_delay_for_held_market_waits(tmp_path):
+    """保有している日本市場の全銘柄が未配信でも、米国の足だけで日付を進めない（休場と誤認しない）。"""
+    data, dates = make_data(tmp_path, 230)
+    cfg = json.loads(cfg_from(tmp_path, dates[210]).read_text(encoding="utf-8"))
+    cfg["universe"].append({"symbol": "SPLG", "currency": "USD", "market": "US"})
+    p = tmp_path / "cfg5.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+    rows = list(csv.DictReader((data / "1306.T.csv").open(encoding="utf-8")))
+    write_csv(data / "SPLG.csv", [{**r, "open": 50, "high": 50, "low": 50, "close": 50} for r in rows])
+    write_csv(data / "1306.T.csv", rows[:-2])  # 日本市場（保有）の直近2日が丸ごと未配信
+    b = run(p, data, tmp_path / "state")
+    assert b.risk.position("1306.T").quantity > 0
+    assert b.last_date == dates[-3]
+    assert any(e.kind == "waiting_data" for e in b.events)
+    # 日本の配信が追いつけば、1日も飛ばさずに処理される
+    write_csv(data / "1306.T.csv", rows)
+    b2 = run(p, data, tmp_path / "state")
+    assert b2.last_date == dates[-1]
+    eq = (tmp_path / "state" / "equity.csv").read_text(encoding="utf-8").strip().splitlines()[1:]
+    assert [l.split(",")[0] for l in eq][-2:] == [d.isoformat() for d in dates[-2:]]

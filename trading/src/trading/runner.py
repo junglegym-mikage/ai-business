@@ -101,10 +101,19 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
         return broker
 
     after = broker.last_date or (start - dt.timedelta(days=1))
+    markets = {i["symbol"]: i.get("market") or ("US" if i["currency"] == "USD" else "JP") for i in cfg["universe"]}
     days = sorted({b.date for bars in history.values() for b in bars if b.date > after and b.date >= start})
+    # 保有中の銘柄がある市場は、その市場の最新足の日付までしか進めない。
+    # 休場日は後の日付の足が届いた時点で「足がない＝休場」と確定できるため、取引所カレンダーなしで
+    # 休場と配信遅れを区別できる（その市場の配信が遅れている間は、その日を処理しない）。
+    # （判定は保有が変わるたびに必要なので、日ごとのループの先頭で行う）
     equity_rows = []
     uses_usd = any(i.currency == "USD" for i in instruments)
     for day in days:
+        horizon = _processing_horizon(broker, history, markets)
+        if horizon is not None and day > horizon:
+            broker._event("waiting_data", "", f"保有市場の足が {horizon} までのため、{day} 以降は次回処理", day)
+            break
         fx_open = _fx_before(fx_bars, day)
         fx_close = _fx_on(fx_bars, day)
         if fx_open is None or fx_close is None:
@@ -113,7 +122,7 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
                 break
             fx_open = fx_close = Decimal(1)
         todays = {s: b for s, bars in history.items() for b in bars if b.date == day}
-        gaps = _held_gaps(broker, todays, day)
+        gaps = _held_gaps(broker, todays, day, markets)
         if gaps:
             # 同じ市場の他銘柄には足があるのに保有銘柄にだけない＝配信遅れ。損切り未判定のまま進めない
             broker._event("run_aborted", ",".join(gaps), f"{day} の保有銘柄の足が未配信のため、この日以降は次回処理")
@@ -135,13 +144,27 @@ def run(config_path: pathlib.Path, data_dir: pathlib.Path, state_dir: pathlib.Pa
     return broker
 
 
-def _held_gaps(broker: PaperBroker, todays: dict, day: dt.date) -> list[str]:
-    """保有銘柄のうち、同じ市場（通貨）の他銘柄には当日の足があるのに自分にはない銘柄。"""
+def _processing_horizon(broker: PaperBroker, history: dict, markets: dict) -> dt.date | None:
+    """保有銘柄のある各市場について「その市場の最新足の日付」をとり、その最小値を返す（保有なしなら None）。"""
+    held_markets = {markets[s] for s in broker.instruments if broker.risk.position(s).quantity and s not in broker.frozen}
+    if not held_markets:
+        return None
+    latest = []
+    for m in held_markets:
+        dates = [bars[-1].date for s, bars in history.items() if markets.get(s) == m and bars]
+        if not dates:
+            return dt.date.min
+        latest.append(max(dates))
+    return min(latest)
+
+
+def _held_gaps(broker: PaperBroker, todays: dict, day: dt.date, markets: dict) -> list[str]:
+    """保有銘柄のうち、同じ市場の他銘柄には当日の足があるのに自分にはない銘柄。"""
     gaps = []
     for s, inst in broker.instruments.items():
         if s in todays or s in broker.frozen or not broker.risk.position(s).quantity:
             continue
-        peers = [p for p, i in broker.instruments.items() if p != s and i.currency == inst.currency]
+        peers = [p for p in broker.instruments if p != s and markets.get(p) == markets.get(s)]
         if any(p in todays for p in peers):
             gaps.append(s)
     return gaps

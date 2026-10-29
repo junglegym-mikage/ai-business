@@ -22,13 +22,53 @@
     "atr_multiple": "2"
   },
   "universe": [
-    {"symbol": "1306.T", "currency": "JPY", "name": "TOPIX連動ETF"},
-    {"symbol": "1475.T", "currency": "JPY", "name": "iシェアーズ TOPIX ETF"},
-    {"symbol": "1343.T", "currency": "JPY", "name": "東証REIT指数ETF"},
-    {"symbol": "1326.T", "currency": "JPY", "name": "金価格連動ETF"},
-    {"symbol": "SPLG", "currency": "USD", "name": "S&P500 ETF"},
-    {"symbol": "SCHD", "currency": "USD", "name": "米国高配当ETF"},
-    {"symbol": "VEA", "currency": "USD", "name": "先進国株ETF"},
-    {"symbol": "GLDM", "currency": "USD", "name": "金ETF"}
+    {
+      "symbol": "1306.T",
+      "currency": "JPY",
+      "name": "TOPIX連動ETF",
+      "market": "JP"
+    },
+    {
+      "symbol": "1475.T",
+      "currency": "JPY",
+      "name": "iシェアーズ TOPIX ETF",
+      "market": "JP"
+    },
+    {
+      "symbol": "1343.T",
+      "currency": "JPY",
+      "name": "東証REIT指数ETF",
+      "market": "JP"
+    },
+    {
+      "symbol": "1326.T",
+      "currency": "JPY",
+      "name": "金価格連動ETF",
+      "market": "JP"
+    },
+    {
+      "symbol": "SPLG",
+      "currency": "USD",
+      "name": "S&P500 ETF",
+      "market": "US"
+    },
+    {
+      "symbol": "SCHD",
+      "currency": "USD",
+      "name": "米国高配当ETF",
+      "market": "US"
+    },
+    {
+      "symbol": "VEA",
+      "currency": "USD",
+      "name": "先進国株ETF",
+      "market": "US"
+    },
+    {
+      "symbol": "GLDM",
+      "currency": "USD",
+      "name": "金ETF",
+      "market": "US"
+    }
   ]
 }

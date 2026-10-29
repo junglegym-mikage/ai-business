@@ -1,0 +1,75 @@
+{
+ "label": "development",
+ "start": "2010-01-01",
+ "end": "2024-10-28",
+ "prereg_commit": null,
+ "markets": {
+  "JP": {
+   "trades": 0,
+   "net_pnl_jpy": 0.0,
+   "expectancy_jpy": 0.0,
+   "win_rate_pct": 0.0,
+   "profit_factor": null,
+   "max_drawdown_pct": 0.0,
+   "final_equity_jpy": 50000.0,
+   "expectancy_first_half_jpy": 0.0,
+   "expectancy_second_half_jpy": 0.0,
+   "by_year": {},
+   "period": [
+    "2010-01-01",
+    "2024-10-01"
+   ],
+   "symbols": [
+    "1306.T",
+    "1475.T",
+    "1343.T",
+    "1326.T"
+   ],
+   "halted": "",
+   "events": {},
+   "judgement": {
+    "checks": {
+     "取引回数": false,
+     "期待値プラス": false,
+     "プロフィットファクター": false,
+     "最大ドローダウン": true,
+     "前後半とも期待値プラス": false
+    },
+    "pass": false
+   }
+  },
+  "US": {
+   "trades": 0,
+   "net_pnl_jpy": 0.0,
+   "expectancy_jpy": 0.0,
+   "win_rate_pct": 0.0,
+   "profit_factor": null,
+   "max_drawdown_pct": 0.0,
+   "final_equity_jpy": 50000.0,
+   "expectancy_first_half_jpy": 0.0,
+   "expectancy_second_half_jpy": 0.0,
+   "by_year": {},
+   "period": null,
+   "symbols": [
+    "SPYM",
+    "SCHD",
+    "VEA",
+    "GLDM"
+   ],
+   "halted": "",
+   "events": {
+    "data_missing": 1
+   },
+   "judgement": {
+    "checks": {
+     "取引回数": false,
+     "期待値プラス": false,
+     "プロフィットファクター": false,
+     "最大ドローダウン": true,
+     "前後半とも期待値プラス": false
+    },
+    "pass": false
+   }
+  }
+ }
+}

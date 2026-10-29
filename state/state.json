@@ -1,0 +1,24 @@
+{
+ "version": 2,
+ "cash": "50000",
+ "trading_day": "2026-10-29",
+ "last_date": "2026-10-29",
+ "daily_realized_pnl": "0",
+ "positions": {},
+ "stops": {},
+ "pending": [],
+ "seen_client_ids": [],
+ "halted": "",
+ "limit_hit_streak": 0,
+ "entry_costs": {},
+ "frozen": {},
+ "events": [
+  {
+   "date": "",
+   "kind": "data_missing",
+   "symbol": "SPLG",
+   "detail": "データファイルがない"
+  }
+ ],
+ "trades": []
+}

@@ -21,12 +21,15 @@ import time
 import urllib.parse
 import urllib.request
 
-URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range={range}&interval=1d&events=div%2Csplit"
+URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?{span}&interval=1d&events=div%2Csplit"
+# range=max だと Yahoo は月足に切り替えることがあるため、長期は period1/period2（UNIX秒）で日足を指定する
+MAX_START = 946684800  # 2000-01-01
 HEADERS = {"User-Agent": "Mozilla/5.0 (paper-trading research; contact: repository owner)"}
 
 
 def fetch(symbol: str, rng: str) -> tuple[list[dict], list[dict]]:
-    url = URL.format(symbol=urllib.parse.quote(symbol), range=rng)
+    span = f"period1={MAX_START}&period2={int(time.time())}" if rng == "max" else f"range={rng}"
+    url = URL.format(symbol=urllib.parse.quote(symbol), span=span)
     req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=30) as resp:
         data = json.load(resp)
@@ -43,6 +46,8 @@ def fetch(symbol: str, rng: str) -> tuple[list[dict], list[dict]]:
         day = dt.datetime.fromtimestamp(t + offset, dt.timezone.utc).date()
         rows.append({"date": day.isoformat(), "open": f"{o:.6f}", "high": f"{h:.6f}",
                      "low": f"{l:.6f}", "close": f"{c:.6f}", "adj_close": f"{a:.6f}"})
+    if len(ts) >= 2 and ts[-1] - ts[0] > 0 and len(ts) < (ts[-1] - ts[0]) / 86400 * 0.5:
+        raise ValueError("日足ではないデータ（足の間隔が広すぎる）")
     # 同じ日付が複数あれば最後を採用
     dedup = {r["date"]: r for r in rows}
     splits = []

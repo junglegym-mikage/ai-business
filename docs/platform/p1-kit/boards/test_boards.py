@@ -27,7 +27,7 @@ def to_input(sheet, cell):
         return "スマホ", f"B{MROW + row - 2}"
     if sheet == "模試の記録":
         if col == "B" and row == 12:
-            return "スマホ", "B17"
+            return "スマホ", "E17"
         return "スマホ", f"{col}{row + 19}"  # 志望の目安＝21行、1回目〜8回目＝22〜29行
     return sheet, cell
 

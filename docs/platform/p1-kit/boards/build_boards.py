@@ -58,6 +58,7 @@ def plan_chart(src,mob,n,title,ytitle,small):
 def mchart(m,src,title,ytitle,first,last,cols,anchor="A12"):
     m.add_chart(plan_chart(src,m,last-1,title,ytitle,True),anchor)
 def fix_heights(m):
+    m.merge_cells(start_row=MROW-1,start_column=1,end_row=MROW-1,end_column=2)
     for r in range(3,10): m.row_dimensions[r].height=44
     m.merge_cells("A10:B10"); m.row_dimensions[10].height=56; m["A10"].alignment=Alignment(wrap_text=True,vertical="top")
 
@@ -224,7 +225,7 @@ def board4():
     TG=21   # 志望の目安の行。1回目〜8回目は22〜29行
     m.cell(19,1,"■ 数字を入れる（模試ごと・偏差値または点数）").font=Font(name=F,bold=True)
     header(m,20,["回"]+["英","数","国","理","社"])
-    lab(m,TG,1,"志望の目安",True)
+    lab(m,TG,1,"目安",True)
     for j in range(5):
         inp(m.cell(TG,j+2),60,"0")
     calc(d.cell(2,1),"志望の目安")
@@ -244,8 +245,9 @@ def board4():
         lab(m,nr,1,nm); m.merge_cells(start_row=nr,start_column=2,end_row=nr,end_column=6)
         inp(m.cell(nr,2),"（例）◯◯模試" if vals[0] is not None else None)
         calc(d.cell(i,7),f'=IF(スマホ!B{nr}="","",スマホ!B{nr})')
-    lab(d,12,1,"受験までに受ける模試の回数（全部で）"); calc(d.cell(12,2),"=スマホ!B17","0")
-    lab(m,17,1,"受験までの模試の回数（全部）"); inp(m.cell(17,2),8,"0")
+    lab(d,12,1,"受験までに受ける模試の回数（全部で）"); calc(d.cell(12,2),"=スマホ!E17","0")
+    m["A17"]="受験までに受ける模試の回数（全部）→"; m["A17"].font=Font(name=F); m.merge_cells("A17:D17"); m["A17"].alignment=Alignment(horizontal="right")
+    inp(m.cell(17,5),8,"0")
     d.cell(13,1,"※ 架空の記入例（中学2年・高校受験）。").font=Font(name=F)
     d.column_dimensions["A"].width=34
     for col in "BCDEF": d.column_dimensions[col].width=9
@@ -279,6 +281,7 @@ def board4():
     m.column_dimensions["A"].width=11
     for col in "BCDEF": m.column_dimensions[col].width=6.5
     m.merge_cells("A1:F1")
+    for rr in (2,9,19,31,41): m.merge_cells(start_row=rr,start_column=1,end_row=rr,end_column=6)
     for k,sb in enumerate(subj):
         r=6+k
         mres(m,3+k,f"{sb}",f'=IF(ボード!B{r}="","",ボード!B{r}&"（目安"&ボード!C{r}&"・差"&TEXT(ボード!D{r},"+0;-0;0")&"）")',None,False)

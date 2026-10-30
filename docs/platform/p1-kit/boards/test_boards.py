@@ -17,11 +17,27 @@ HERE = Path(__file__).resolve().parent
 RECALC = sys.argv[1]
 
 
+MROW = 27  # build_boards.py と同じ。数字の入力欄はスマホシートにある
+
+
+def to_input(sheet, cell):
+    """記録シートの実績セルなどを、実際の入力欄（スマホシート）の位置に読み替える。"""
+    col, row = cell[0], int(cell[1:])
+    if sheet == "記録" and col == "C":
+        return "スマホ", f"B{MROW + row - 2}"
+    if sheet == "模試の記録":
+        if col == "B" and row == 12:
+            return "スマホ", "B17"
+        return "スマホ", f"{col}{row + 19}"  # 志望の目安＝21行、1回目〜8回目＝22〜29行
+    return sheet, cell
+
+
 def run(board, edits, checks, name):
     tmp = Path(tempfile.mkdtemp()) / board
     shutil.copy(HERE / board, tmp)
     wb = load_workbook(tmp)
     for sheet, cell, value in edits:
+        sheet, cell = to_input(sheet, cell)
         wb[sheet][cell] = value
     wb.save(tmp)
     out = json.loads(subprocess.run([sys.executable, RECALC, str(tmp), "90"], capture_output=True, text=True).stdout)

@@ -91,8 +91,8 @@ def linear(title,usage_lines,unit,start,goal,n,period_word,actuals,metric_name,f
     G='(前提!B3-前提!B2)'
     rows=[
      (3,"現在地",None,None,True),
-     (4,f"最後に実績を入れた{period_word}",f'=IF(COUNT({rng})=0,"",LOOKUP(2,1/({rng}<>""),{rng_a}))',"0",False),
-     (5,f"現在の{metric_name}（{unit}）",f'=IF(B4="","",LOOKUP(2,1/({rng}<>""),{rng}))',fmt,True),
+     (4,f"最後に実績を入れた{period_word}",f'=IF(COUNT({rng})=0,"",INDEX({rng_a},MATCH(9.99E+307,{rng})))',"0",False),
+     (5,f"現在の{metric_name}（{unit}）",f'=IF(B4="","",INDEX({rng},MATCH(9.99E+307,{rng})))',fmt,True),
      (6,f"目標（{unit}）","=前提!B3",fmt,False),
      (7,"目標までの進み具合",f'=IF(OR(B4="",{G}=0),"",(B5-前提!B2)/{G})',"0%",True),
      (8,"当初の計画と比べて",f'=IF(B4="","",IF({G}=0,"前提を確認（最初の値と目標が同じ）",IF((B5-INDEX(記録!B2:B{last},B4))*SIGN({G})>=0,"計画どおり、または先行","計画より遅れ")))',None,True),
@@ -186,8 +186,8 @@ def board2():
     rng=f"記録!C2:C{last}"
     rng_a=f"記録!A2:A{last}"
     rows=[(3,"現在地",None,None,False),
-     (4,"最後に実績を入れた月",f'=IF(COUNT({rng})=0,"",LOOKUP(2,1/({rng}<>""),{rng_a}))',"0",False),
-     (5,"現在の積立残高（円）",f'=IF(B4="","",LOOKUP(2,1/({rng}<>""),{rng}))',"#,##0",True),
+     (4,"最後に実績を入れた月",f'=IF(COUNT({rng})=0,"",INDEX({rng_a},MATCH(9.99E+307,{rng})))',"0",False),
+     (5,"現在の積立残高（円）",f'=IF(B4="","",INDEX({rng},MATCH(9.99E+307,{rng})))',"#,##0",True),
      (6,"目標（円）","=前提!B3","#,##0",False),
      (7,"目標までの進み具合",'=IF(OR(B4="",前提!B3=前提!B2),"",(B5-前提!B2)/(前提!B3-前提!B2))',"0%",True),
      (8,"当初の計画と比べて",f'=IF(B4="","",IF(B5>=INDEX(記録!B2:B{last},B4),"計画どおり、または先行","計画より遅れ"))',None,True),
@@ -256,7 +256,7 @@ def board4():
     for k,s in enumerate(subj):
         r=6+k; col="BCDEF"[k]; rng=f"模試の記録!{col}3:{col}10"
         lab(b,r,1,s)
-        calc(b.cell(r,2),f'=IFERROR(LOOKUP(2,1/({rng}<>""),{rng}),"")',"0",True)
+        calc(b.cell(r,2),f'=IFERROR(INDEX({rng},MATCH(9.99E+307,{rng})),"")',"0",True)
         calc(b.cell(r,3),f"=模試の記録!{col}2","0")
         calc(b.cell(r,4),f'=IFERROR(B{r}-C{r},"")',"0;-0;0")
         calc(b.cell(r,5),f'=IFERROR(IF(COUNT({rng})<3,"",(B{r}-模試の記録!{col}3)/(COUNT({rng})-1)),"")',"0.0")

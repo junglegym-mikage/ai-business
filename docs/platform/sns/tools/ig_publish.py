@@ -31,7 +31,10 @@ import urllib.parse
 import urllib.request
 
 # 新しいアプリは「統合ログイン（ビジネス向けFacebookログイン）」になるため graph.facebook.com と Instagram のユーザーID を使う
-API = "https://graph.facebook.com/v23.0"
+# トークンの種類で接続先を切り替える：Instagram のトークン（IG で始まる）は graph.instagram.com、
+# ビジネス向けFacebookログインのトークンは graph.facebook.com
+API = ("https://graph.instagram.com/v23.0" if os.environ.get("IG_ACCESS_TOKEN", "").startswith("IG")
+       else "https://graph.facebook.com/v23.0")
 IG_ID = os.environ.get("IG_USER_ID", "")  # リポジトリ変数。Instagram のプロアカウントのID（数字）
 ACCOUNT = "process_performance_ai"
 REPO = os.environ.get("GITHUB_REPOSITORY", "junglegym-mikage/ai-business")

@@ -1,0 +1,40 @@
+# Instagram の予約投稿（オーナーOK済みの投稿だけ）。仕様: docs/platform/p1-kit/sns-engine.md 6.1
+# - PR からは起動しない（schedule と手動実行のみ）
+# - 投稿は リポジトリ変数 IG_PUBLISH_ENABLED=true のときだけ（手動実行でも同じ）。check は投稿しない
+name: instagram-publish
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check（確認だけ・投稿しない）/ dry（対象の表示だけ）/ run（投稿）"
+        default: check
+permissions:
+  contents: write
+concurrency:
+  group: instagram-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.IG_PUBLISH_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          ref: platform/issue-12-phase0
+      - name: publish
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_PUBLISH_ENABLED: ${{ vars.IG_PUBLISH_ENABLED }}
+          IG_TOKEN_ISSUED: ${{ vars.IG_TOKEN_ISSUED }}
+          MODE: ${{ github.event.inputs.mode || 'run' }}
+        run: |
+          git config user.name "instagram-publish"
+          git config user.email "actions@users.noreply.github.com"
+          case "$MODE" in
+            check) python3 docs/platform/sns/tools/ig_publish.py check ;;
+            dry)   python3 docs/platform/sns/tools/ig_publish.py run --dry ;;
+            run)   python3 docs/platform/sns/tools/ig_publish.py run ;;
+            *) echo "unknown mode"; exit 1 ;;
+          esac

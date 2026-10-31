@@ -1,6 +1,6 @@
 # 1週目の投稿（リール5本＋ストーリーズ）— アカウント作成後すぐ使える
 
-すべて架空の例。保証・効果の数字なし。運営名が決まったら `python3 tools/render.py week1 --brand "運営名"` で画像・動画の下部に名前を入れて作り直せる（約3分）。
+すべて架空の例。保証・効果の数字なし。画像・動画の下部に運営名「PROCESS PERFORMANCE」入り（`python3 tools/render.py week1 --brand "PROCESS PERFORMANCE"`、約3分）。
 
 | 曜日 | 事業 | 形式 | ファイル |
 |---|---|---|---|

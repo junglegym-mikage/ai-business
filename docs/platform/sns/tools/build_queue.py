@@ -22,6 +22,13 @@ def old_captions():
     return {d: f"{cap.strip()}\n\n{tags.strip()}" for d, (cap, tags) in zip(ORDER, blocks)}
 
 
+PINNED = [
+    "このアカウントでできること\n\n①経営のAI化 ②家計・積立 ③目標ロードマップ ④受験ロードマップを、AIでつくります。\n事例はすべて架空です。結果を保証するものではありません。",
+    "AIで道筋をつくる、とは\n\n① 今の現在地を知る\n② ゴールまでのルートを作る\n③ 毎月、数字を記録する\n④ 道筋を自動で作り直す",
+    "ご利用の前に\n\n・結果（売上・資産・目標達成・合格など）を保証するものではありません\n・専門家による個別の助言ではありません\n・投稿の事例はすべて架空です\n・AIで作成し、運営者が確認しています\n・受付の状況は、プロフィールのリンク先でご確認ください",
+]
+
+
 def new_caption(sp):
     cap = sp["caption"]
     if "保証" not in cap:
@@ -33,8 +40,10 @@ def new_caption(sp):
 def main():
     old = old_captions()
     q = []
+    for i, cap in enumerate(PINNED, 1):  # 固定投稿（APIの画像はJPEGのみ）。投稿後にピン留めは手動
+        q.append(dict(id=f"pinned-{i}", at="2026-10-31T22:20:00+09:00", type="IMAGE", file=f"{W1}/pinned-{i}.jpg", caption=cap))
     for date, keys, (story, o1, o2) in C.SCHEDULE:
-        q.append(dict(id=f"{date}-story", at=f"{date}T07:00:00+09:00", type="STORIES", file=f"{W1}/{story}.png",
+        q.append(dict(id=f"{date}-story", at=f"{date}T07:00:00+09:00", type="STORIES", file=f"{W1}/{story}.jpg",
                       poll=f"{o1}／{o2}（APIではアンケートを付けられないため、付ける場合はアプリで追加）"))
         for t, k in zip(C.TIMES, keys):
             hh, mm = t.split(":")

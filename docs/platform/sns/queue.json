@@ -1,9 +1,30 @@
 [
  {
+  "id": "pinned-1",
+  "at": "2026-10-31T22:20:00+09:00",
+  "type": "IMAGE",
+  "file": "docs/platform/sns/week1/pinned-1.jpg",
+  "caption": "このアカウントでできること\n\n①経営のAI化 ②家計・積立 ③目標ロードマップ ④受験ロードマップを、AIでつくります。\n事例はすべて架空です。結果を保証するものではありません。"
+ },
+ {
+  "id": "pinned-2",
+  "at": "2026-10-31T22:20:00+09:00",
+  "type": "IMAGE",
+  "file": "docs/platform/sns/week1/pinned-2.jpg",
+  "caption": "AIで道筋をつくる、とは\n\n① 今の現在地を知る\n② ゴールまでのルートを作る\n③ 毎月、数字を記録する\n④ 道筋を自動で作り直す"
+ },
+ {
+  "id": "pinned-3",
+  "at": "2026-10-31T22:20:00+09:00",
+  "type": "IMAGE",
+  "file": "docs/platform/sns/week1/pinned-3.jpg",
+  "caption": "ご利用の前に\n\n・結果（売上・資産・目標達成・合格など）を保証するものではありません\n・専門家による個別の助言ではありません\n・投稿の事例はすべて架空です\n・AIで作成し、運営者が確認しています\n・受付の状況は、プロフィールのリンク先でご確認ください"
+ },
+ {
   "id": "2026-11-01-story",
   "at": "2026-11-01T07:00:00+09:00",
   "type": "STORIES",
-  "file": "docs/platform/sns/week1/story-mon-1-question.png",
+  "file": "docs/platform/sns/week1/story-mon-1-question.jpg",
   "poll": "10時間未満／10時間以上（APIではアンケートを付けられないため、付ける場合はアプリで追加）"
  },
  {
@@ -31,7 +52,7 @@
   "id": "2026-11-02-story",
   "at": "2026-11-02T07:00:00+09:00",
   "type": "STORIES",
-  "file": "docs/platform/sns/week1/story-tue-1-question.png",
+  "file": "docs/platform/sns/week1/story-tue-1-question.jpg",
   "poll": "3つ以下／4つ以上（APIではアンケートを付けられないため、付ける場合はアプリで追加）"
  },
  {
@@ -59,7 +80,7 @@
   "id": "2026-11-03-story",
   "at": "2026-11-03T07:00:00+09:00",
   "type": "STORIES",
-  "file": "docs/platform/sns/week1/story-wed-1-question.png",
+  "file": "docs/platform/sns/week1/story-wed-1-question.jpg",
   "poll": "決めてる／まだ決めていない（APIではアンケートを付けられないため、付ける場合はアプリで追加）"
  },
  {
@@ -87,7 +108,7 @@
   "id": "2026-11-04-story",
   "at": "2026-11-04T07:00:00+09:00",
   "type": "STORIES",
-  "file": "docs/platform/sns/week1/story-sat-1-question.png",
+  "file": "docs/platform/sns/week1/story-sat-1-question.jpg",
   "poll": "使ってる／まだ使っていない（APIではアンケートを付けられないため、付ける場合はアプリで追加）"
  },
  {
@@ -115,7 +136,7 @@
   "id": "2026-11-05-story",
   "at": "2026-11-05T07:00:00+09:00",
   "type": "STORIES",
-  "file": "docs/platform/sns/week1/story-thu-1-question.png",
+  "file": "docs/platform/sns/week1/story-thu-1-question.jpg",
   "poll": "毎回見返す／あまり見返さない（APIではアンケートを付けられないため、付ける場合はアプリで追加）"
  },
  {
@@ -143,7 +164,7 @@
   "id": "2026-11-06-story",
   "at": "2026-11-06T07:00:00+09:00",
   "type": "STORIES",
-  "file": "docs/platform/sns/week1/story-fri-1-question.png",
+  "file": "docs/platform/sns/week1/story-fri-1-question.jpg",
   "poll": "つけている／つけていない（APIではアンケートを付けられないため、付ける場合はアプリで追加）"
  },
  {
@@ -171,7 +192,7 @@
   "id": "2026-11-07-story",
   "at": "2026-11-07T07:00:00+09:00",
   "type": "STORIES",
-  "file": "docs/platform/sns/week1/story-sun-1-question.png",
+  "file": "docs/platform/sns/week1/story-sun-1-question.jpg",
   "poll": "進んだ／進まなかった（APIではアンケートを付けられないため、付ける場合はアプリで追加）"
  },
  {

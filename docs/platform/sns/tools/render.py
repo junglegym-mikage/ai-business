@@ -173,10 +173,10 @@ def reel2(t):
     s, acc = 3, ACC[3]
     if t < 3:
         img, d = frame_base(s)
-        text_block(img, d, ["同じゴールでも", "ルートは", "1つじゃない"], 640, 100, t=t * 2)
+        text_block(img, d, ["目標まで、", "あと何か月？", "今の数字から逆算"], 640, 96, t=t * 2)
     elif t < 9:
         img, d = frame_base(s)
-        text_block(img, d, ["例：資格の試験（架空）"], 380, 50, color=MUTED, t=99)
+        text_block(img, d, ["ルートは1つじゃない", "例：資格の試験（架空）"], 360, 50, color=MUTED, t=99)
         sx, sy, gx, gy = 170, 1300, 900, 560
         d.ellipse([sx - 22, sy - 22, sx + 22, sy + 22], fill=WHITE + (255,))
         d.text((sx - 50, sy + 36), "スタート", font=font(38), fill=WHITE + (255,))
@@ -237,10 +237,10 @@ def reel3(t):
     items = [("1", "お客さんの名前・連絡先"), ("2", "パスワード・ID"), ("3", "カード番号・契約書の原本")]
     if t < 2.8:
         img, d = frame_base(s)
-        text_block(img, d, ["AIに", "入れてはいけない", "情報 3つ"], 640, 100, t=t * 2)
+        text_block(img, d, ["業務で使うAIに", "許可なく入れない", "情報 3つ"], 640, 96, t=t * 2)
     elif t < 10:
         img, d = frame_base(s)
-        text_block(img, d, ["AIに入れない情報"], 400, 60, color=MUTED, t=99)
+        text_block(img, d, ["許可なく入れない情報"], 400, 60, color=MUTED, t=99)
         for i, (n, label) in enumerate(items):
             p = ease((t - 2.8 - i * 2.2) / 0.7)
             if p <= 0:
@@ -252,13 +252,12 @@ def reel3(t):
             d.text((220, y + 18), label, font=font(56), fill=WHITE + (int(255 * p),))
     elif t < 15.5:
         img, d = frame_base(s)
-        text_block(img, d, ["使うときは", "伏せ字にする"], 520, 92, t=(t - 10) * 2)
+        text_block(img, d, ["入れる情報は", "必要最小限に"], 480, 92, t=(t - 10) * 2)
         p = ease((t - 11.8) / 0.8)
         if p > 0:
-            d.rounded_rectangle([110, 820, 970, 1100], 28, fill=(32, 52, 82, int(255 * p)))
-            d.text((150, 860), "【顧客名】様", font=font(54), fill=acc + (int(255 * p),))
-            d.text((150, 950), "ご予約ありがとうございます。", font=font(46, False), fill=WHITE + (int(255 * p),))
-            d.text((150, 1020), "【日時】でお待ちしています。", font=font(46, False), fill=WHITE + (int(255 * p),))
+            d.rounded_rectangle([90, 760, 990, 1230], 28, fill=(32, 52, 82, int(255 * p)))
+            for i, ln in enumerate(["・使うAIの規約と設定を確認", "・名前を伏せても、組み合わせで", "　個人がわかることがある", "・必要な情報だけを入れる"]):
+                d.text((130, 800 + i * 100), ln, font=font(48, False), fill=WHITE + (int(255 * p),))
     else:
         img = end_card(s, (t - 15.5) / 1.2)
     return img
@@ -323,8 +322,8 @@ def carousel_exam():
     n = "架空の例です。合格を保証するものではありません"
     return [
         slide(s, "模試の結果、\nどう読む？", "点数より大事なのは\n「差」と「次の一手」", cover=True),
-        slide(s, "教科ごとに\n「今」と「目安」の差を書く", ["英 59（目安60・差-1）", "数 52（目安60・差-8）", "国 56（目安60・差-4）"], "1", n),
-        slide(s, "差が大きい教科から優先する", ["上の例なら、まず数学", "差が小さい教科は\n「維持しながら少しずつ」"], "2", n),
+        slide(s, "教科ごとに\n「今」と「目安」の差を書く", ["英語 偏差値59（目安60・差-1）", "数学 偏差値52（目安60・差-8）", "国語 偏差値56（目安60・差-4）"], "1", n),
+        slide(s, "差が大きい教科から優先する", ["上の例なら、まず数学", "ただし、志望校の配点や出題範囲も合わせて考える", "差が小さい教科は\n「維持しながら少しずつ」"], "2", n),
         slide(s, "同じ会社の\n模試どうしで比べる", ["偏差値は、模試の会社や受ける人で変わる", "違う模試の数字は、そのまま比べない"], "3", n),
         slide(s, "次の模試の目標を\n1つだけ決める", ["例：数学の計算問題を8割取る", "目標が1つだと、毎日の勉強が決めやすい"], "4", n),
         slide(s, "受験までの道筋を見える化", ["④受験ロードマップは、模試の結果を入れると教科別の現在地と次の目標がわかります", "入試の日程・制度は学校などの公式情報で確認を", "④受験ロードマップは\nプロフィールのリンクから"], None, "合格を保証するものではありません"),
@@ -352,10 +351,10 @@ def _notice():
     img, d = frame_base(0, CW, CH, safe_top=70)
     text_block(img, d, ["ご利用の前に"], 220, 72, t=99)
     lines = ["・結果（売上・資産・目標達成・合格など）を保証するものではありません",
-             "・税理士・FPなどの専門家による個別の助言ではありません",
+             "・専門家による個別の助言ではありません",
              "・投稿の事例はすべて架空です",
              "・AIで作成し、運営者が確認しています",
-             "・各サービスは先着順・数量限定でのご案内です"]
+             "・受付の状況は、プロフィールのリンク先でご確認ください"]
     y = 420
     for ln in lines:
         y = text_block(img, d, wrap(d, ln, font(44, False), 880), y, 44, t=99, center=False, bold=False, gap=1.45) + 30

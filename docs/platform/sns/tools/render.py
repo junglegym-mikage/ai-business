@@ -421,6 +421,42 @@ def _notice():
     return img.convert("RGB")
 
 
+def spec_slides(sp):
+    s = sp["series"]
+    out = [slide(s, sp["cover"][0], sp["cover"][1], cover=True)]
+    for i, (title, body) in enumerate(sp["slides"], 1):
+        num = None if title[0].isdigit() else str(i)
+        out.append(slide(s, title, body, num, sp["note"]))
+    return out
+
+
+def build_w1plus(out, media=True):
+    """増量期1週目：content_w1.py の台本からリール・追加ストーリー・投稿表を作る。"""
+    import content_w1 as C
+    for day, s, q, sub in (C.EXTRA_STORIES if media else []):
+        story_question(s, q, sub).save(out / f"story-{day}-1-question.png", optimize=True)
+        story_reel(s).save(out / f"story-{day}-2-reel.png", optimize=True)
+    for key, sp in (C.REELS.items() if media else []):
+        fn, dur = slides_reel(spec_slides(sp), sp["series"])
+        render_reel(out / f"reel-{key}.mp4", fn, dur)
+    lines = ["# 増量期1週目の投稿表（1日リール3本＋ストーリー1本）", "",
+             "時刻：7:30／12:15／20:30。キャプション・ハッシュタグ・代替テキストは、既存5本は `posts.md`、新しい16本は下記。", ""]
+    for date, keys, (story, o1, o2) in C.SCHEDULE:
+        lines.append(f"## {date}")
+        for t, k in zip(C.TIMES, keys):
+            f = k if k.startswith("reel-") else f"reel-{k}"
+            lines.append(f"- {t}　`{f}.mp4`" + ("" if k.startswith("reel-") else f"（{C.REELS[k]['cover'][0].replace(chr(10), '')}）"))
+        lines.append(f"- ストーリー（朝）　`{story}.png`　アンケート：{o1}／{o2}")
+        lines.append("")
+    lines.append("---")
+    lines.append("")
+    for key, sp in C.REELS.items():
+        lines += [f"## `reel-{key}.mp4`", "**キャプション**", sp["caption"], "",
+                  f"※{sp['note']}。" if "保証" not in sp["caption"] else "", "", f"**ハッシュタグ**：{sp['tags']}", "",
+                  f"**代替テキスト**：{sp['alt']}", "", "---", ""]
+    (out / "schedule-w1plus.md").write_text("\n".join(l for l in lines) + "\n")
+
+
 def main():
     global BRAND
     ap = argparse.ArgumentParser()
@@ -437,6 +473,9 @@ def main():
         for day, s, q, sub in STORIES:
             story_question(s, q, sub).save(out / f"story-{day}-1-question.png", optimize=True)
             story_reel(s).save(out / f"story-{day}-2-reel.png", optimize=True)
+    if a.only == "w1plus":
+        build_w1plus(out)
+        return
     if a.only in ("all", "reels"):
         reels = list(REELS)
         reels.append(("reel-tue-2-money.mp4",) + slides_reel(carousel_money(), 2))

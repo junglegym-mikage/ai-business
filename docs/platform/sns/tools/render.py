@@ -1,4 +1,4 @@
-"""SNS素材の生成（リール動画・カルーセル画像・固定投稿画像）。
+"""SNS素材の生成（全投稿リール・ストーリーズ画像・固定投稿画像）。
 
 使い方: python3 render.py <出力フォルダ> [--brand "運営名"]
 - フォントは Noto Sans CJK（SIL Open Font License。商用利用可）
@@ -22,6 +22,7 @@ SERIES = {0: "AIで道筋をつくる", 1: "①経営のAI化", 2: "②家計・
 FPS = 30
 W, H = 1080, 1920
 BRAND = ""
+SWIPE = False  # カルーセルとして書き出すときだけ「スワイプ ▶」を出す（今はリールのみ）
 
 
 def font(size, bold=True):
@@ -288,7 +289,8 @@ def slide(series, title, body=None, num=None, note=None, cover=False):
         y = text_block(img, d, wrap(d, title, font(92), 900), 360, 92, t=99)
         if body:
             text_block(img, d, wrap(d, body, font(48, False), 900), y + 50, 48, color=MUTED, t=99, bold=False)
-        d.text((CW - 330, CH - 160), "スワイプ ▶", font=font(40), fill=acc + (255,))
+        if SWIPE:
+            d.text((CW - 330, CH - 160), "スワイプ ▶", font=font(40), fill=acc + (255,))
     else:
         y = 210
         if num:
@@ -328,6 +330,64 @@ def carousel_exam():
         slide(s, "次の模試の目標を\n1つだけ決める", ["例：数学の計算問題を8割取る", "目標が1つだと、毎日の勉強が決めやすい"], "4", n),
         slide(s, "受験までの道筋を見える化", ["④受験ロードマップは、模試の結果を入れると教科別の現在地と次の目標がわかります", "入試の日程・制度は学校などの公式情報で確認を", "④受験ロードマップは\nプロフィールのリンクから"], None, "合格を保証するものではありません"),
     ]
+
+
+# ---------- スライドをリールにする（全投稿リール化） ----------
+def slides_reel(slides, series, cover_sec=2.6, sec=3.8):
+    """カルーセル用の 1080x1350 スライドを 1080x1920 の縦動画に並べる。
+    上 230px・下 340px の安全域の間（y=230〜1580）に置き、切り替えはフェード＋少し上へ。"""
+    base, _ = frame_base(series)
+    base = base.convert("RGB")
+    plan, t0 = [], 0.0
+    for i, s in enumerate(slides):
+        dur = cover_sec if i == 0 else sec
+        plan.append((t0, dur, s))
+        t0 += dur
+    total = t0 + 2.6
+
+    def fn(t):
+        if t >= t0:
+            return end_card(series, (t - t0) / 1.2)
+        img = base.copy()
+        for st, dur, s in plan:
+            if st <= t < st + dur:
+                p = ease((t - st) / 0.45)
+                lay = Image.new("RGB", img.size, (0, 0, 0))
+                lay.paste(s, (0, 230 + int((1 - p) * 50)))
+                mask = Image.new("L", img.size, 0)
+                mask.paste(int(255 * p), (0, 230 + int((1 - p) * 50), CW, 230 + int((1 - p) * 50) + CH))
+                img.paste(lay, (0, 0), mask)
+                break
+        return img.convert("RGBA")
+    return fn, total
+
+
+# ---------- ストーリーズ（1080x1920。スタンプは投稿時にアプリで貼る） ----------
+STORIES = [
+    ("mon", 1, "事務作業、\n月に何時間\nかかってる？", "数えたことがある人は少ないかも"),
+    ("tue", 2, "毎月払ってる\nサブスク、\nいくつある？", "全部言えたらすごい"),
+    ("wed", 3, "今の目標、\n期限は\n決めてる？", "期限があると逆算できる"),
+    ("thu", 4, "模試の結果、\n返ってきたら\n見返してる？", "点数より「差」を見るのがコツ"),
+    ("sat", 1, "仕事で\nAI、\n使ってる？", "使う前に確認したいことも"),
+]
+
+
+def story_question(series, q, sub):
+    """1枚目：質問（中央下にアンケートスタンプを貼る余白）。"""
+    img, d = frame_base(series, safe_top=250)
+    y = text_block(img, d, q.split("\n"), 420, 96, t=99)
+    text_block(img, d, wrap(d, sub, font(42, False), 900), y + 20, 42, color=MUTED, t=99, bold=False)
+    d.text(((W - d.textlength("▼ 答えてみてください", font=font(40))) / 2, 1080), "▼ 答えてみてください", font=font(40), fill=ACC[series] + (255,))
+    return img.convert("RGB")  # 1160〜1500 はアンケートスタンプ用に空ける
+
+
+def story_reel(series):
+    """2枚目：リールをストーリーズでシェアするときの背景（中央にリールが重なる）。"""
+    img, d = frame_base(series, safe_top=250)
+    text_block(img, d, ["新しいリールを", "公開しました"], 360, 64, t=99)
+    msg = "▲ タップして見る"
+    d.text(((W - d.textlength(msg, font=font(44))) / 2, 1370), msg, font=font(44), fill=ACC[series] + (255,))
+    return img.convert("RGB")  # 520〜1340 にシェアしたリールを置く
 
 
 def pinned():
@@ -372,11 +432,16 @@ def main():
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     if a.only in ("all", "images"):
-        for name, slides in [("carousel-tue-2-money", carousel_money()), ("carousel-thu-4-exam", carousel_exam()), ("pinned", pinned())]:
-            for i, im in enumerate(slides, 1):
-                im.save(out / f"{name}-{i}.png", optimize=True)
+        for i, im in enumerate(pinned(), 1):
+            im.save(out / f"pinned-{i}.png", optimize=True)
+        for day, s, q, sub in STORIES:
+            story_question(s, q, sub).save(out / f"story-{day}-1-question.png", optimize=True)
+            story_reel(s).save(out / f"story-{day}-2-reel.png", optimize=True)
     if a.only in ("all", "reels"):
-        for name, fn, dur in REELS:
+        reels = list(REELS)
+        reels.append(("reel-tue-2-money.mp4",) + slides_reel(carousel_money(), 2))
+        reels.append(("reel-thu-4-exam.mp4",) + slides_reel(carousel_exam(), 4))
+        for name, fn, dur in reels:
             render_reel(out / name, fn, dur)
 
 

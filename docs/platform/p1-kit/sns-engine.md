@@ -94,6 +94,18 @@
 
 当面は Instagram 公式の予約投稿を使う。API の投稿上限は24時間あたり最大100件程度（公式ドキュメント。数値は要確認）。
 
+## 6.1 自動投稿（投稿方法B）の仕組み（オーナー指示 2026-10-31「やってくれ」。ChatGPT レビューの必須修正を反映）
+Meta 公式の Instagram API with Instagram Login（Facebookページ不要。権限 instagram_business_basic・instagram_business_content_publish。リール・ストーリーズ可。動画は公開URLから取り込み。アンケートスタンプは付けられない）。
+- **実行**：GitHub Actions（公開リポジトリのため無料）が30分ごとに `sns/tools/ig_publish.py` を実行。ワークフローは既定ブランチ（main）に置く必要があるため、ワークフロー1ファイルだけのPRをオーナー承認で main に入れる。PR からは起動しない
+- **投稿表**：`sns/queue.json`（`build_queue.py` で台本とキャプションから作る）
+- **承認**：オーナーが週（または日）の投稿をOK → Claude が `ig_publish.py approve <日付>` で `approvals.json` に承認ハッシュを記録。ハッシュは投稿日時・形式・ファイルの中身・キャプション・アカウント名から計算するため、承認後に1つでも変わると自動的に未承認になる
+- **二重投稿の防止**：`posted.json` に状態を記録。processing（GitHub に記録してから API を呼ぶ）→ published（メディアID）／failed（公開前の失敗。次回再試行）／unknown（公開できたか不明。自動で再投稿せずオーナー確認）。記録できないときは投稿しない。同時実行なし。予定から3時間を過ぎたものは投稿しない
+- **安全装置**：リポジトリ変数 `IG_PUBLISH_ENABLED=true` のときだけ投稿（手動実行でも同じ。check は投稿しない）。投稿前にアカウント名が `process_performance_ai` か確認。外部 Action はコミットSHAで固定。トークンはログに出さない
+- **トークン**：オーナーが生成し、GitHub Secrets `IG_ACCESS_TOKEN` に自分で登録（Claude は見ない・入力しない）。発行日をリポジトリ変数 `IG_TOKEN_ISSUED` に入れる。50日目から警告、58日目で投稿を止める → オーナーが再発行
+- **素材**：公開リポジトリの完成素材だけを jsDelivr の URL（コミット固定）で取り込ませる
+- **切り替え**：check（アカウント確認）→ オーナーが内容を確認した1本でテスト投稿 → 成功したら、本番への切り替えを別途オーナーが承認
+- **オーナーの作業**：①Claude の画面のブラウザで Facebook にログインし、Meta 開発者に登録 ②（Claude がアプリを作成し、Instagram のテスターを追加）③オーナーがトークンの生成ボタンを押して Instagram でログイン ④GitHub の Settings → Secrets and variables → Actions で `IG_ACCESS_TOKEN`（Secret）と `IG_TOKEN_ISSUED`・`IG_PUBLISH_ENABLED`（Variables）を登録 ⑤main へのPRを承認
+
 ## 7. 最初の4週間の目標（予測ではなく行動の目標）
 - リール20本とストーリーズを予定どおり出す
 - 掴み違いの比較を最低5組行う

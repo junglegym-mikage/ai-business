@@ -28,6 +28,7 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_PUBLISH_ENABLED: ${{ vars.IG_PUBLISH_ENABLED }}
           IG_TOKEN_ISSUED: ${{ vars.IG_TOKEN_ISSUED }}
+          IG_USER_ID: ${{ vars.IG_USER_ID }}
           MODE: ${{ github.event.inputs.mode || 'run' }}
         run: |
           git config user.name "instagram-publish"

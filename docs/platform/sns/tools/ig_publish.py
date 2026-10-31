@@ -1,4 +1,4 @@
-"""Instagram への予約投稿（Instagram API with Instagram Login・Meta 公式・無料）。
+"""Instagram への予約投稿（Meta 公式の Instagram API・統合ログインのシステムユーザートークン・無料）。
 
 GitHub Actions から30分ごとに実行される（仕様：docs/platform/p1-kit/sns-engine.md 6.1）。
 投稿するのは次をすべて満たすものだけ：
@@ -11,6 +11,7 @@ GitHub Actions から30分ごとに実行される（仕様：docs/platform/p1-k
 unknown（投稿できたか確認できない）は自動で再投稿せず、オーナー確認に回す。
 
 アクセストークンは GitHub の Secrets（IG_ACCESS_TOKEN）にオーナーが入れる。ログに出さない。
+Instagram のユーザーID はリポジトリ変数 IG_USER_ID。
 動画・画像は公開リポジトリの完成素材を jsDelivr の URL（コミット固定）で Instagram に取り込ませる。
 
 使い方:
@@ -29,7 +30,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-API = "https://graph.instagram.com/v23.0"
+# 新しいアプリは「統合ログイン（ビジネス向けFacebookログイン）」になるため graph.facebook.com と Instagram のユーザーID を使う
+API = "https://graph.facebook.com/v23.0"
+IG_ID = os.environ.get("IG_USER_ID", "")  # リポジトリ変数。Instagram のプロアカウントのID（数字）
 ACCOUNT = "process_performance_ai"
 REPO = os.environ.get("GITHUB_REPOSITORY", "junglegym-mikage/ai-business")
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../.."))
@@ -110,7 +113,9 @@ def check_token_age():
 
 
 def check_account():
-    me = call("GET", "me", fields="username,account_type")
+    if not IG_ID.isdigit():
+        sys.exit("IG_USER_ID（数字）が設定されていません")
+    me = call("GET", IG_ID, fields="username")
     if me.get("username") != ACCOUNT:
         sys.exit(f"アカウントが {ACCOUNT} ではないため停止しました")
     return me
@@ -119,11 +124,11 @@ def check_account():
 def create_container(item):
     url = media_url(item["file"])
     if item["type"] == "REELS":
-        return call("POST", "me/media", media_type="REELS", video_url=url, caption=item.get("caption", ""), share_to_feed="true")["id"]
+        return call("POST", f"{IG_ID}/media", media_type="REELS", video_url=url, caption=item.get("caption", ""), share_to_feed="true")["id"]
     if item["type"] == "STORIES":
         key = "video_url" if item["file"].endswith(".mp4") else "image_url"
-        return call("POST", "me/media", media_type="STORIES", **{key: url})["id"]
-    return call("POST", "me/media", image_url=url, caption=item.get("caption", ""))["id"]
+        return call("POST", f"{IG_ID}/media", media_type="STORIES", **{key: url})["id"]
+    return call("POST", f"{IG_ID}/media", image_url=url, caption=item.get("caption", ""))["id"]
 
 
 def wait_ready(cid):
@@ -178,7 +183,7 @@ def run(dry):
             errors += 1
             continue
         try:
-            mid = call("POST", "me/media_publish", creation_id=cid)["id"]
+            mid = call("POST", f"{IG_ID}/media_publish", creation_id=cid)["id"]
             posted[item["id"]] = {"state": "published", "media_id": mid, "at": now.isoformat()}
             print("  published:", mid)
         except Exception as e:  # 公開されたか分からない → unknown（自動で再投稿しない）
@@ -206,8 +211,8 @@ def main():
         return approve(set(sys.argv[2:]))
     if mode == "check":
         me = check_account()
-        lim = call("GET", "me/content_publishing_limit", fields="quota_usage,config")
-        print("account:", me.get("username"), me.get("account_type"))
+        lim = call("GET", f"{IG_ID}/content_publishing_limit", fields="quota_usage,config")
+        print("account:", me.get("username"))
         print("publishing limit:", json.dumps(lim.get("data", lim), ensure_ascii=False))
         check_token_age()
         return

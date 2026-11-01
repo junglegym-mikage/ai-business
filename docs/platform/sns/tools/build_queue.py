@@ -43,7 +43,7 @@ def main():
     for i, cap in enumerate(PINNED, 1):  # 固定投稿（APIの画像はJPEGのみ）。投稿後にピン留めは手動
         q.append(dict(id=f"pinned-{i}", at="2026-10-31T22:20:00+09:00", type="IMAGE", file=f"{W1}/pinned-{i}.jpg", caption=cap))
     for date, keys, (story, o1, o2) in C.SCHEDULE:
-        q.append(dict(id=f"{date}-story", at=f"{date}T07:00:00+09:00", type="STORIES", file=f"{W1}/{story}.jpg",
+        q.append(dict(id=f"{date}-story", at=f"{date}T06:40:00+09:00", type="STORIES", file=f"{W1}/{story}.jpg",
                       poll=f"{o1}／{o2}（APIではアンケートを付けられないため、付ける場合はアプリで追加）"))
         for t, k in zip(C.TIMES, keys):
             hh, mm = t.split(":")

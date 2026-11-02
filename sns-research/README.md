@@ -4,14 +4,14 @@
 動画では人が Sort Feed for Instagram・ViralFindr・Google AI Studio・NotebookLM を使っているが、
 ここでは **Claude が内蔵ブラウザで同じことを行う**（拡張機能は使えないため）。
 
-## 対象アカウント（すべて同じ手順）
+## 対象アカウント（すべて同じ手順・2026-11-02 オーナー確定の4つ）
+対象外：@mikage_decision_lab（御影デジシャン）・@yujiro_8345（オーナー指示でリサーチしない）
 | アカウント | 内容 | 運用場所 | リサーチ結果の置き場所 |
 |---|---|---|---|
 | @suuhi_tobira | 数秘術・占い（数秘のとびら） | repo suuhi-no-tobira（ops/RUNBOOK.md） | sns-research/suuhi_tobira/ |
 | @process_performance_ai | AIで道筋（経営AI化・家計・目標・受験） | repo ai-business（branch platform/issue-12-phase0, docs/platform/sns） | sns-research/process_performance_ai/ |
-| @mikage_decision_lab | ジム関連（ジムの別アカウント） | 別プロジェクト | sns-research/mikage_decision_lab/ |
+| @mikage_junglegym_personal | パーソナルジムJungleGym（御影） | 別プロジェクト | sns-research/mikage_junglegym_personal/ |
 | @mikage_healthcare_support | 御影ヘルスケアサポート | 別プロジェクト | sns-research/mikage_healthcare_support/ |
-| @yujiro_8345 | オーナー個人 | 別プロジェクト | sns-research/yujiro_8345/ |
 
 結果は `sns-research/<アカウント>/YYYY-MM-DD.md`（このブランチ sns/research）に置く。
 **各アカウントの投稿づくり（2週間分の作成・週次の企画）の前に、必ず最新のリサーチ結果を読んでから作る。**

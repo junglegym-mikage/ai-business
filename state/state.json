@@ -1,27 +1,33 @@
 {
  "version": 2,
- "cash": "50000",
- "trading_day": "2026-10-30",
- "last_date": "2026-10-30",
- "daily_realized_pnl": "0",
- "positions": {},
- "stops": {},
- "pending": [
-  {
-   "client_id": "2026-10-30-SCHD-enter",
-   "symbol": "SCHD",
-   "side": "buy",
+ "cash": "38690.5997770500260010",
+ "trading_day": "2026-11-02",
+ "last_date": "2026-11-02",
+ "daily_realized_pnl": "-11.30",
+ "positions": {
+  "SCHD": {
    "quantity": 2,
-   "stop_distance": "0.7268802",
-   "reason": "20日高値ブレイク・200日平均の上"
+   "avg_price": "5649.0501114749869995",
+   "mark_price": "5666.707615694000",
+   "stop_price": "5365.6309848660689517172425"
   }
- ],
+ },
+ "stops": {
+  "SCHD": {
+   "side": "sell",
+   "quantity": 2,
+   "stop_price": "35.0710087995"
+  }
+ },
+ "pending": [],
  "seen_client_ids": [
   "2026-10-30-SCHD-enter"
  ],
  "halted": "",
  "limit_hit_streak": 0,
- "entry_costs": {},
+ "entry_costs": {
+  "SCHD": "11.30"
+ },
  "frozen": {},
  "events": [
   {
@@ -35,7 +41,25 @@
    "kind": "accepted",
    "symbol": "SCHD",
    "detail": "buy 2 (20日高値ブレイク・200日平均の上)"
+  },
+  {
+   "date": "2026-11-02",
+   "kind": "filled",
+   "symbol": "SCHD",
+   "detail": "buy 2 @ 35.7979 (20日高値ブレイク・200日平均の上)"
   }
  ],
- "trades": []
+ "trades": [
+  {
+   "date": "2026-11-02",
+   "symbol": "SCHD",
+   "side": "buy",
+   "quantity": 2,
+   "price": "35.7979",
+   "price_jpy": "5649.05",
+   "cost_jpy": "11.30",
+   "realized_jpy": "0.00",
+   "reason": "20日高値ブレイク・200日平均の上"
+  }
+ ]
 }

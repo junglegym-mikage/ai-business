@@ -4,8 +4,8 @@
 
 | アカウント | 内容 | 投稿 | 手順 |
 |---|---|---|---|
-| @mikage_junglegym_personal | パーソナルジムJungleGym（神戸市東灘区御影）。体験・入会を増やす | 週3本：月・水・金 19:43 | `mikage_junglegym_personal/RUNBOOK.md` |
-| @mikage_healthcare_support | 御影ヘルスケアサポート（姿勢サポートインソール 15,000円、BASE） | 週3本：火・木・土 21:13 | `mikage_healthcare_support/RUNBOOK.md` |
+| @mikage_junglegym_personal | パーソナルジムJungleGym（神戸市東灘区御影）。体験・入会を増やす | 毎日1本：19:43（2026-11-03 オーナー指示で毎日に変更） | `mikage_junglegym_personal/RUNBOOK.md` |
+| @mikage_healthcare_support | 御影ヘルスケアサポート（姿勢サポートインソール 15,000円、BASE） | 毎日1本：21:13（2026-11-03 オーナー指示で毎日に変更） | `mikage_healthcare_support/RUNBOOK.md` |
 
 （@suuhi_tobira は repo suuhi-no-tobira、@process_performance_ai は ai-business の platform/issue-12-phase0 ブランチで運営。御影デジシャン @mikage_decision_lab と @yujiro_8345 は運用しない）
 

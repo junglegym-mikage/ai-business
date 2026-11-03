@@ -1,14 +1,14 @@
 {
  "version": 2,
  "cash": "38690.5997770500260010",
- "trading_day": "2026-11-02",
- "last_date": "2026-11-02",
- "daily_realized_pnl": "-11.30",
+ "trading_day": "2026-11-03",
+ "last_date": "2026-11-03",
+ "daily_realized_pnl": "0",
  "positions": {
   "SCHD": {
    "quantity": 2,
    "avg_price": "5649.0501114749869995",
-   "mark_price": "5666.707615694000",
+   "mark_price": "5640.113991347000",
    "stop_price": "5365.6309848660689517172425"
   }
  },

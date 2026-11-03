@@ -1,7 +1,7 @@
 # @mikage_healthcare_support 運営手順（御影ヘルスケアサポート）
 
 - 商品：プロトレーナーが選んだ 姿勢サポートインソール。15,000円（税込・送料無料）。サイズ 23.0〜28.0cm（0.5cm刻み、26.5cm は品切れ中）。ショップ：mikagehealth.base.shop（プロフィールのリンク）。
-- 計画：Claude Docs「御影ヘルスケアサポート 拡大計画」（https://claude.ai/artifact/CCdCAynMh6YUyHmN7KGcX3）。ネットは柱④「Instagram・Threadsでトレーナー目線の姿勢・足の知識を発信しBASEへ誘導」。投稿はオーナーが承認してから。
+- 計画：Claude Docs「御影ヘルスケアサポート 拡大計画」（https://claude.ai/artifact/CCdCAynMh6YUyHmN7KGcX3）。ネットは柱④「Instagram・Threadsでトレーナー目線の姿勢・足の知識を発信しBASEへ誘導」。投稿の承認は不要（2026-11-03 オーナー指示）。作った投稿はそのまま投稿タスクが投稿する。
 - 2026-11-02 時点：投稿24・フォロワー8。最後の投稿は 2026年2月。
 
 ## 投稿づくり（毎週日曜・翌週の月〜日の7本。2026-11-03 オーナー指示で毎日投稿）
@@ -11,18 +11,18 @@
 3. 冒頭3秒はリサーチの型を使う。構成は結論→理由→具体例を基本にする。
 4. caption：最初の1行 → 本文3〜6行 → 「プロトレーナーが選んだインソールは、プロフィールのショップから（15,000円・送料無料）」→ ハッシュタグ5〜8個（#インソール #立ち仕事 #足の疲れ #姿勢 #神戸 など）。最後に「※医療機器ではありません。使い心地には個人差があります。」を入れる（商品に触れる投稿）。
 5. 見た目：brand "御影ヘルスケアサポート"、colors {"bg":"#f3efe6","bg2":"#fbf8f2","ink":"#3b2f25","soft":"#8a7a68","gold":"#9a6b3f","seal":"#c0563b","line":"#dccfbd"}。
-6. `approved: false` で posts.json に入れて push → オーナーに7本の冒頭と要点を送り、「OK」か直しをもらう。OK なら approved を true にして push。
+6. 禁止表現（下）が無いか見直してから `approved: true` で posts.json に入れて push。オーナーへの承認依頼は不要（2026-11-03 オーナー指示）。7本の冒頭は報告として送るだけでよい。
 - 禁止（薬機法・景品表示法）：「治る」「改善」「矯正」「不調にアプローチ」「救う」など効果や治療を思わせる表現、「正規19,800円→15,000円」のような二重価格、同意のないお客様の声。「支える」「サポート」「快適」「楽に」などの使い心地の表現にする。
 
 ## データ（`posts.json`）
 ```json
-{"posts": {"2026-11-04": {"approved": false, "theme": "…", "spec": {"type": "slides", "brand": "…", "colors": {…}, "dur": 10, "top": "…", "topFrom": 2.2, "scenes": [{"at": 0, "lines": [["文字", 64, "soft", "sans"], …]}, …]}, "caption": "…"}}, "posted": {}}
+{"posts": {"2026-11-04": {"approved": true, "theme": "…", "spec": {"type": "slides", "brand": "…", "colors": {…}, "dur": 10, "top": "…", "topFrom": 2.2, "scenes": [{"at": 0, "lines": [["文字", 64, "soft", "sans"], …]}, …]}, "caption": "…"}}, "posted": {}}
 ```
 - scenes：1場面2〜3行。1行は全角12字以内（入らないと小さくなる）。色は ink / soft / gold / seal。1枚目（0〜2秒）が「冒頭3秒」。
 - 1本 8〜12秒、4〜6場面。最後の場面は行動の呼びかけ。
 
 ## 投稿する（投稿タスクが行う）
-0. 今日の日本時間の日付で `posts[日付]` を見る。無い・`approved` が true でない → 投稿しない（未承認なら「承認待ちのため投稿せず」と報告）。`posted[日付]` がある、またはリール一覧の最新キャプションが同じなら投稿済みなので何もしない。
+0. 今日の日本時間の日付で `posts[日付]` を見る。無い → 投稿しない（「今日の投稿が無い」と報告）。承認は不要（2026-11-03 オーナー指示）なので `approved` は見ない。ただし caption と scenes に禁止表現（「治る」「改善」「矯正」「アプローチ」「救う」、二重価格など）があれば投稿せず報告する。`posted[日付]` がある、またはリール一覧の最新キャプションが同じなら投稿済みなので何もしない。
 1. 内蔵ブラウザ（mcp__remote-devices__Claude_Browser__）で resize_window を 1200x900 にしてから https://www.instagram.com/mikage_healthcare_support/ を開く。
 2. `../common/ig_render.js` と `../common/ig_reel.js` を javascript_exec でそのまま実行。`__igAccount()` が `/mikage_healthcare_support/` でなければ、元のアカウント名を控えてから切り替える（https://www.instagram.com/ → 右上「切り替える」→ 一覧の mikage_healthcare_support）。一覧に無い・パスワードを求められた → 投稿せず報告して終了。切り替え後、`/mikage_healthcare_support/` と「プロフィールを編集」を確認できなければ投稿しない。
 3. `__reelStart(spec)` → `__reelStatus()` が done（w=1080・h=1920、duration が spec.dur）になるまで待つ。

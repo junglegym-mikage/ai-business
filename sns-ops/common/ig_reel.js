@@ -196,13 +196,19 @@ function mp4(samples, avcC, w, h, fps) {
   return new Blob([ftyp, moovOf(off), mdatHead, ...samples.map(s => s.data)], { type: 'video/mp4' });
 }
 // spec から mp4 を作る。内蔵ブラウザの符号化は遅い（1080x1920 で数fps）ので裏で動かし、__reelStatus() で進み具合を見る。
-// 終わると window.__reelBlob に入り、__reelStatus().done が true になる（目安 2〜4分）。途中で止まったらページを再読み込みしてやり直す。
+// 終わると window.__reelBlob に入り、__reelStatus().done が true になる（目安 1〜2分。ソフトウェア符号化）。途中で止まったらページを再読み込みしてやり直す。
 window.__reelStart = (spec) => {
   if (!spec.dur) spec = Object.assign({}, spec, { dur: 8 }); window.__reelSpec = spec; const st = window.__reelState = { frame: 0, total: Math.round(spec.dur * FPS), out: 0, done: false, err: null, t0: Date.now() };
   (async () => {
     const c = __reelCanvas(), x = c.getContext('2d'), samples = []; let avcC = null;
     const enc = new VideoEncoder({ output: (chunk, meta) => { if (meta && meta.decoderConfig && meta.decoderConfig.description) avcC = new Uint8Array(meta.decoderConfig.description); const d = new Uint8Array(chunk.byteLength); chunk.copyTo(d); samples.push({ data: d, key: chunk.type === 'key' }); st.out = samples.length; }, error: e => st.err = String(e) });
-    enc.configure({ codec: 'avc1.640028', width: W, height: H, bitrate: 6000000, framerate: FPS, avc: { format: 'avc' } });
+    // 2026-11-03: 内蔵ブラウザが画面に出ていない（隠れている）と、ハードウェア符号化が数コマで止まる。ソフトウェア符号化なら隠れていても約1分半で終わるので、使えるときはそれを使う。
+    const cfg = { codec: 'avc1.640028', width: W, height: H, bitrate: 6000000, framerate: FPS, avc: { format: 'avc' } };
+    const sw = Object.assign({}, cfg, { hardwareAcceleration: 'prefer-software' });
+    st.hw = (await VideoEncoder.isConfigSupported(sw).catch(() => ({}))).supported ? 'software' : 'default';
+    enc.configure(st.hw === 'software' ? sw : cfg);
+    // 15秒進まなければ止まったとみなす（err に stalled。ページを再読み込みしてやり直す）
+    let last = -1, lastT = Date.now(); const dog = setInterval(() => { if (st.done || st.err) return clearInterval(dog); if (st.out !== last) { last = st.out; lastT = Date.now(); } else if (Date.now() - lastT > 15000) { st.err = 'stalled at frame ' + st.frame + ' (' + st.hw + ')'; clearInterval(dog); } }, 1000);
     for (let f = 0; f < st.total && !st.err; f++) {
       __reelDraw(x, spec, f / FPS);
       const vf = new VideoFrame(c, { timestamp: Math.round(f * 1e6 / FPS), duration: Math.round(1e6 / FPS) });

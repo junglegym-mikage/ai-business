@@ -32,5 +32,6 @@
 5. キャプション欄を computer の left_click でクリック → computer の type で caption を一字一句入力 → 数秒待って `__igCaptionValue() === caption` を確認。Facebook へのシェア・AIラベルはオフのまま。
 6. シェア直前に `__igAccount()` が `/mikage_junglegym_personal/` のままか再確認 → 「シェア」を left_click。
 7. 公開ページで最新リールのキャプションが caption と一致するか確認（空なら `__igOpenEdit()` で入れる。削除・再投稿はしない）。
+7.5 **メイングリッドから外す（オーナー指示 2026-11-03）**：投稿ページ https://www.instagram.com/p/<id>/ で右上「その他のオプション」→「プロフィールグリッドから削除」を left_click（リールタブには残る。シェア画面にはこの設定が無い）。もう一度メニューを開き「プロフィールグリッドに追加」に変わっていれば完了。「削除」は押さない。
 8. `posted[日付]` に投稿のIDと時刻を書いて push。元のアカウントに切り替えて戻す。resize_window を preset "desktop" に戻す。
 9. 報告：投稿した内容、成功/失敗、フォロワー数、直近リールの再生数、新しいコメント・DMと返信案（返信は送らない）。

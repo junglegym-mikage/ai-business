@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROCESS PERFORMANCE｜AIで道筋をつくる</title>
+<meta name="description" content="PROCESS PERFORMANCEは、AIで仕事・お金・目標・受験の「道筋」をつくるサービスです。お問い合わせはこちらから。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="/index.html">PROCESS PERFORMANCE</a><nav><a href="#contact">お問い合わせ</a><a href="/privacy.html">プライバシー</a></nav></div></header>
+<main class="wrap">
+  <div class="hero">
+    <div class="eyebrow">AI × 道筋づくり</div>
+    <h1>今どこにいて、<br>ゴールまで何をすればいい？</h1>
+    <p>AIで「現在地」と「道筋」を見える化します。計画と資料はAIで作成し、運営者が確認してからお届けします。</p>
+  </div>
+
+  <section>
+    <h2>サービス</h2>
+    <div class="grid">
+      <div class="card"><b>① 経営のAI化</b><span>毎週くり返す事務作業を洗い出し、AIで減らす手順をつくる</span></div>
+      <div class="card"><b>② 家計・積立</b><span>家計を整理し、積立のシミュレーションをつくる</span></div>
+      <div class="card"><b>③ 目標達成</b><span>目標から逆算したロードマップをつくる</span></div>
+      <div class="card"><b>④ 受験</b><span>志望と現在地から学習の道筋をつくる</span></div>
+    </div>
+    <p class="note">※結果を保証するものではなく、専門家による個別の助言ではありません。事例・サンプルは架空のものです。</p>
+  </section>
+
+  <section id="contact">
+    <h2>お問い合わせ</h2>
+    <p class="note">送信いただいた内容は、Wix（国外のサーバーを含む）に保存されます。返信の下書きにAIサービスClaude（米国のAnthropic社）を使う場合があり、その際はお名前・連絡先を除いた内容だけを入力します。AIでの処理を望まない場合はご相談内容にお書きください。詳しくは<a href="/privacy.html">プライバシーポリシー</a>をご覧ください。</p>
+    <div class="panel">
+      <div id="form-root"><p class="skeleton">フォームを読み込んでいます…</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>運営者</h2>
+    <dl class="info">
+      <dt>屋号</dt><dd>PROCESS PERFORMANCE（プロセスパフォーマンス）</dd>
+      <dt>運営者</dt><dd>井田</dd>
+      <dt>お問い合わせ</dt><dd>このページのフォーム</dd>
+      <dt>Instagram</dt><dd><a href="https://www.instagram.com/process_performance_ai/" rel="noopener">@process_performance_ai</a></dd>
+    </dl>
+  </section>
+</main>
+<footer><div class="wrap">© PROCESS PERFORMANCE ・ <a href="/privacy.html">プライバシーポリシー</a></div></footer>
+<script type="module">
+  import { renderForm } from "/js/wix/form-renderer.js";
+  const root = document.getElementById("form-root");
+  try {
+    renderForm(root, {
+      formId: "aacd3db5-deea-4e55-8a05-75c1f141187f",
+      text: {
+        loading: "フォームを読み込んでいます…",
+        closed: "現在、お問い合わせの受付を停止しています。",
+        submit: "送信する",
+        next: "次へ",
+        back: "戻る",
+        sending: "送信中…",
+        required: "必須",
+        choose: "選択してください",
+        thanks: "お問い合わせありがとうございます。内容を確認のうえ、ご連絡します。",
+        unsupported: "この項目はこのページでは入力できません。"
+      }
+    });
+  } catch (e) {
+    root.textContent = "フォームを読み込めませんでした。時間をおいて再度お試しください。";
+  }
+</script>
+</body>
+</html>

@@ -1,2 +1,4 @@
 date,symbol,side,quantity,price,price_jpy,cost_jpy,realized_jpy,reason
 2026-11-02,SCHD,buy,2,35.7979,5649.05,11.30,0.00,20日高値ブレイク・200日平均の上
+2026-11-05,VEA,buy,1,70.2451,11131.67,11.13,0.00,20日高値ブレイク・200日平均の上
+2026-11-05,VEA,sell,1,68.6977,10886.46,10.89,-245.21,stop

@@ -1,14 +1,14 @@
 {
  "version": 2,
- "cash": "38690.5997770500260010",
- "trading_day": "2026-11-04",
- "last_date": "2026-11-04",
- "daily_realized_pnl": "0",
+ "cash": "38423.37189853234871174850",
+ "trading_day": "2026-11-05",
+ "last_date": "2026-11-05",
+ "daily_realized_pnl": "-267.22787851767728925150",
  "positions": {
   "SCHD": {
    "quantity": 2,
    "avg_price": "5649.0501114749869995",
-   "mark_price": "5733.599944076998",
+   "mark_price": "5585.167177151988",
    "stop_price": "5365.6309848660689517172425"
   }
  },
@@ -19,16 +19,7 @@
    "stop_price": "35.0710087995"
   }
  },
- "pending": [
-  {
-   "client_id": "2026-11-04-VEA-enter",
-   "symbol": "VEA",
-   "side": "buy",
-   "quantity": 1,
-   "stop_distance": "1.51298950",
-   "reason": "20日高値ブレイク・200日平均の上"
-  }
- ],
+ "pending": [],
  "seen_client_ids": [
   "2026-10-30-SCHD-enter",
   "2026-11-04-VEA-enter"
@@ -63,6 +54,18 @@
    "kind": "accepted",
    "symbol": "VEA",
    "detail": "buy 1 (20日高値ブレイク・200日平均の上)"
+  },
+  {
+   "date": "2026-11-05",
+   "kind": "filled",
+   "symbol": "VEA",
+   "detail": "buy 1 @ 70.2451 (20日高値ブレイク・200日平均の上)"
+  },
+  {
+   "date": "2026-11-05",
+   "kind": "stop",
+   "symbol": "VEA",
+   "detail": "sell 1 @ 68.6977"
   }
  ],
  "trades": [
@@ -76,6 +79,28 @@
    "cost_jpy": "11.30",
    "realized_jpy": "0.00",
    "reason": "20日高値ブレイク・200日平均の上"
+  },
+  {
+   "date": "2026-11-05",
+   "symbol": "VEA",
+   "side": "buy",
+   "quantity": 1,
+   "price": "70.2451",
+   "price_jpy": "11131.67",
+   "cost_jpy": "11.13",
+   "realized_jpy": "0.00",
+   "reason": "20日高値ブレイク・200日平均の上"
+  },
+  {
+   "date": "2026-11-05",
+   "symbol": "VEA",
+   "side": "sell",
+   "quantity": 1,
+   "price": "68.6977",
+   "price_jpy": "10886.46",
+   "cost_jpy": "10.89",
+   "realized_jpy": "-245.21",
+   "reason": "stop"
   }
  ]
 }

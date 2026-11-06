@@ -104,10 +104,19 @@ def frame_base(series, w=W, h=H, safe_top=230):
     return img, d
 
 
+CTA_V2 = False  # 2026-11-06〜：販売は自社サイト。①は「申し込めます（先着3名）」、②③④は「サービス一覧へ」
+
+
 def end_card(series, t):
     img, d = frame_base(series)
     acc = ACC[series]
-    y = text_block(img, d, [SERIES[series] + "は", "プロフィールの", "リンクから"], 640, 78, t=t * 3)
+    if not CTA_V2:
+        lines = [SERIES[series] + "は", "プロフィールの", "リンクから"]
+    elif series == 1:
+        lines = ["①AI化セットは", "プロフィールのリンクから", "申し込めます", "（先着3名）"]
+    else:
+        lines = ["プロフィールの", "リンクから", "サービス一覧へ"]
+    y = text_block(img, d, lines, 600 if len(lines) > 3 else 640, 72 if len(lines) > 3 else 78, t=t * 3)
     p = ease(t * 3 - 1.0)
     if p > 0:
         d.rounded_rectangle([240, y + 40, 840, y + 150], 55, outline=acc + (int(255 * p),), width=5)
@@ -115,6 +124,9 @@ def end_card(series, t):
         d.text(((W - d.textlength(msg, font=font(44))) / 2, y + 66), msg, font=font(44), fill=acc + (int(255 * p),))
     note = "事例は架空です／結果を保証するものではありません"
     d.text(((W - d.textlength(note, font=font(28, False))) / 2, 1300), note, font=font(28, False), fill=MUTED + (255,))
+    if CTA_V2:
+        n2 = "AIで作成し、運営者が確認しています"
+        d.text(((W - d.textlength(n2, font=font(28, False))) / 2, 1350), n2, font=font(28, False), fill=MUTED + (255,))
     return img
 
 
@@ -457,12 +469,100 @@ def build_w1plus(out, media=True):
     (out / "schedule-w1plus.md").write_text("\n".join(l for l in lines) + "\n")
 
 
+def table_slide(series, tb, note):
+    """一枚の表（型A）。1080x1350。列幅は中身の長さで配分。"""
+    img, d = frame_base(series, CW, CH, safe_top=70)
+    acc = ACC[series]
+    y = text_block(img, d, wrap(d, tb["title"], font(56), 900), 180, 56, t=99)
+    head, rows = tb["head"], tb["rows"]
+    n = len(head)
+    fs = 36 if n <= 2 else (32 if n == 3 else 30)
+    f, fb = font(fs, False), font(fs)
+    x0, x1 = 60, CW - 60
+    need = [max(d.textlength(str(r[i]), font=fb) for r in [head] + rows) + 36 for i in range(n)]
+    sc = min(1.0, (x1 - x0) / sum(need))
+    ws = [w * sc for w in need]
+    ws[-1] += (x1 - x0) - sum(ws)
+    rh = min(110, int((CH - 260 - (y + 40)) / (len(rows) + 1)))
+    y += 30
+    d.rounded_rectangle([x0, y, x1, y + rh], 16, fill=acc + (255,))
+    x = x0
+    for i, h in enumerate(head):
+        tw = d.textlength(h, font=fb)
+        d.text((x + (ws[i] - tw) / 2, y + (rh - fs) / 2 - 6), h, font=fb, fill=BG + (255,))
+        x += ws[i]
+    for j, r in enumerate(rows):
+        yy = y + rh * (j + 1)
+        if j % 2 == 0:
+            d.rectangle([x0, yy, x1, yy + rh], fill=(32, 52, 82, 255))
+        x = x0
+        for i, c in enumerate(r):
+            c = str(c)
+            col = (255, 107, 107) if c == "×" else (acc if c in ("○", "△") else WHITE)
+            ff = fb if (i == 0 or c in ("○", "△", "×")) else f
+            tw = d.textlength(c, font=ff)
+            tx = x + 18 if (i == 0 and n > 2) else x + (ws[i] - tw) / 2
+            d.text((tx, yy + (rh - fs) / 2 - 6), c, font=ff, fill=col + (255,))
+            x += ws[i]
+    yb = y + rh * (len(rows) + 1) + 40
+    if tb.get("foot"):
+        text_block(img, d, wrap(d, tb["foot"], font(40), 940), yb, 40, color=acc, t=99)
+    if note:
+        fn = font(26, False)
+        d.text(((CW - d.textlength(note, font=fn)) / 2, CH - 130), note, font=fn, fill=MUTED + (255,))
+    return img.convert("RGB")
+
+
+def spec_slides_w2(sp):
+    s = sp["series"]
+    out = [slide(s, sp["cover"][0], sp["cover"][1], cover=True)]
+    if sp.get("kind") == "table":
+        out.append(table_slide(s, sp["table"], sp["note"]))
+        return out
+    total = len(sp["slides"])
+    for i, (title, body) in enumerate(sp["slides"], 1):
+        fr = sp.get("frac")
+        if fr:
+            k = total if fr is True else fr
+            num = f"{i}/{k}" if i <= k else None
+        else:
+            num = None if title[0].isdigit() else str(i)
+        out.append(slide(s, title, body, num, sp["note"]))
+    return out
+
+
+def build_w2(out, content="content_w2", only=None):
+    """増量期2週目以降：content_wN.py の台本からリール・ストーリー画像を作る。
+    表（型A）は表紙2.2秒＋表を7.5秒静止＋最後の案内2.6秒。最後の案内は CTA_V2（自社サイト）。"""
+    import importlib
+    global CTA_V2
+    CTA_V2 = True
+    C = importlib.import_module(content)
+    for name, s, q, sub in C.STORIES:
+        if only and name not in only:
+            continue
+        im = story_question(s, q, sub)
+        im.save(out / f"{name}.png", optimize=True)
+        im.save(out / f"{name}.jpg", quality=92)
+    for key, sp in C.REELS.items():
+        if only and key not in only:
+            continue
+        sl = spec_slides_w2(sp)
+        if sp.get("kind") == "table":
+            fn, dur = slides_reel(sl, sp["series"], cover_sec=2.2, sec=7.5)
+        else:
+            fn, dur = slides_reel(sl, sp["series"])
+        render_reel(out / f"reel-{key}.mp4", fn, dur)
+        print("rendered", key, f"{dur:.1f}s")
+
+
 def main():
     global BRAND
     ap = argparse.ArgumentParser()
     ap.add_argument("out")
     ap.add_argument("--brand", default="")
     ap.add_argument("--only", default="all")
+    ap.add_argument("--keys", default="")
     a = ap.parse_args()
     BRAND = a.brand
     out = Path(a.out)
@@ -475,6 +575,9 @@ def main():
             story_reel(s).save(out / f"story-{day}-2-reel.png", optimize=True)
     if a.only == "w1plus":
         build_w1plus(out)
+        return
+    if a.only.startswith("content_w"):  # 例: --only content_w2 [--keys b2-sort,m2-cal]
+        build_w2(out, a.only, set(a.keys.split(",")) if a.keys else None)
         return
     if a.only in ("all", "reels"):
         reels = list(REELS)

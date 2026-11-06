@@ -40,3 +40,6 @@ textarea.form-control{min-height:140px}
 footer{border-top:1px solid var(--line);margin-top:40px;padding:24px 0;font-size:13px;color:var(--muted)}
 .legal h3{font-size:16px;margin:24px 0 8px}
 .legal p,.legal li{font-size:15px}
+.cta{margin:20px 0 8px}
+.btn{display:inline-block;font-weight:700;background:var(--accent);color:var(--accent-ink);text-decoration:none;border-radius:999px;padding:14px 32px}
+.btn:hover{opacity:.9}

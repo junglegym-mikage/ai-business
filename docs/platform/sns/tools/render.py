@@ -279,15 +279,29 @@ def reel3(t):
 REELS = [("reel-mon-1-business.mp4", reel1, 21.0), ("reel-wed-3-goal.mp4", reel2, 20.5), ("reel-sat-1-business.mp4", reel3, 18.0)]
 
 
+def music_input(out, dur):
+    """背景音楽（2026-11-07〜）。tools/reel_music.js でその場で作る自作曲（雰囲気 tech）。node が無いときは無音。"""
+    wav = Path(str(out) + ".music.wav")
+    try:
+        subprocess.run(["node", str(Path(__file__).with_name("reel_music.js")), "tech", Path(out).stem, str(dur + 0.5), str(wav)],
+                       check=True, stdout=subprocess.DEVNULL)
+        return ["-i", str(wav)], wav
+    except (OSError, subprocess.CalledProcessError):
+        return ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"], None
+
+
 def render_reel(out, fn, dur):
+    ain, wav = music_input(out, dur)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-           "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", "-shortest",
-           "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", str(out)]
+           *ain, "-shortest",
+           "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(out)]
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     for i in range(int(dur * FPS)):
         p.stdin.write(fn(i / FPS).convert("RGB").tobytes())
     p.stdin.close()
     p.wait()
+    if wav:
+        wav.unlink(missing_ok=True)
 
 
 # ---------- カルーセル（1080x1350） ----------

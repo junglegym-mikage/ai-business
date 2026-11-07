@@ -25,7 +25,7 @@
 0. 今日の日本時間の日付で `posts[日付]` を見る。無い → 投稿しない（「今日の投稿が無い」と報告）。承認は不要（2026-11-03 オーナー指示）なので `approved` は見ない。ただし caption と scenes に禁止表現（「治る」「改善」「矯正」「アプローチ」「救う」、二重価格など）があれば投稿せず報告する。`posted[日付]` がある、またはリール一覧の最新キャプションが同じなら投稿済みなので何もしない。
 1. 内蔵ブラウザ（mcp__remote-devices__Claude_Browser__）で resize_window を 1200x900 にしてから https://www.instagram.com/mikage_healthcare_support/ を開く。
 2. `../common/ig_render.js` と `../common/ig_reel.js` を javascript_exec でそのまま実行。`__igAccount()` が `/mikage_healthcare_support/` でなければ、元のアカウント名を控えてから切り替える（https://www.instagram.com/ → 右上「切り替える」→ 一覧の mikage_healthcare_support）。一覧に無い・パスワードを求められた → 投稿せず報告して終了。切り替え後、`/mikage_healthcare_support/` と「プロフィールを編集」を確認できなければ投稿しない。
-3. `__reelStart(spec)` → `__reelStatus()` が done（w=1080・h=1920、duration が spec.dur）になるまで待つ。
+3. `__reelStart(spec)` → `__reelStatus()` が done（w=1080・h=1920、duration が spec.dur）になるまで待つ。`audio` が「あり（calm）」なら音楽入り。「なし（…）」でも投稿は続け、終わりの報告に理由を書く。
 4. `await __igOpen()` → `await __reelAttach()` → 「リール動画としてシェア」の案内は OK → 切り取り画面で「元の比率」→「次へ」→ カバーは文字が全部出ているコマ →「次へ」。
 5. キャプション欄を computer の left_click でクリック → computer の type で caption を一字一句入力 → 数秒待って `__igCaptionValue() === caption` を確認。Facebook へのシェア・AIラベルはオフのまま。
 6. シェア直前に `__igAccount()` が `/mikage_healthcare_support/` のままか再確認 → 「シェア」を left_click。

@@ -1,9 +1,9 @@
 {
  "version": 2,
  "cash": "49444.30507564533270174850",
- "trading_day": "2026-11-06",
- "last_date": "2026-11-06",
- "daily_realized_pnl": "-277.1670458369900090",
+ "trading_day": "2026-11-09",
+ "last_date": "2026-11-09",
+ "daily_realized_pnl": "0",
  "positions": {},
  "stops": {},
  "pending": [],

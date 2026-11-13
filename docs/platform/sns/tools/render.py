@@ -494,6 +494,10 @@ def table_slide(series, tb, note):
     f, fb = font(fs, False), font(fs)
     x0, x1 = 60, CW - 60
     need = [max(d.textlength(str(r[i]), font=fb) for r in [head] + rows) + 36 for i in range(n)]
+    while sum(need) > (x1 - x0) and fs > 24:  # 2026-11-13〜：はみ出すときだけ文字を小さくする（はみ出さない表は今までと同じ）
+        fs -= 2
+        f, fb = font(fs, False), font(fs)
+        need = [max(d.textlength(str(r[i]), font=fb) for r in [head] + rows) + 36 for i in range(n)]
     sc = min(1.0, (x1 - x0) / sum(need))
     ws = [w * sc for w in need]
     ws[-1] += (x1 - x0) - sum(ws)

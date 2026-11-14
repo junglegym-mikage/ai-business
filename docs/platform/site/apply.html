@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>申込内容のご入力｜PROCESS PERFORMANCE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="/index.html">PROCESS PERFORMANCE</a><nav><a href="/index.html#contact">お問い合わせ</a></nav></div></header>
+<main class="wrap">
+  <div class="hero">
+    <div class="eyebrow">① AI化セット</div>
+    <h1>お申し込みありがとうございます</h1>
+    <p>お支払いを確認しました。最後に、資料づくりに使う申込内容を入力してください。送信いただいた日（お支払いの確認とそろった日）の翌営業日から7営業日以内に、PDFをメールでお届けします。</p>
+  </div>
+  <section>
+    <div class="panel">
+      <div id="form-root"><p class="skeleton">フォームを読み込んでいます…</p></div>
+    </div>
+    <p class="note">ご回答は、お名前・連絡先・会社名を除いた項目だけをAI（Claude）で処理し、運営者が確認してからお届けします。顧客・従業員・取引先の個人情報やID・パスワードは書かないでください。詳しくは<a href="/terms.html">利用規約</a>・<a href="/privacy.html">プライバシーポリシー</a>をご覧ください。このページを閉じてしまった場合は、<a href="/index.html#contact">お問い合わせ</a>からご連絡ください。</p>
+  </section>
+</main>
+<footer><div class="wrap">© PROCESS PERFORMANCE ・ <a href="/tokushoho.html">特定商取引法にもとづく表記</a> ・ <a href="/terms.html">利用規約</a> ・ <a href="/privacy.html">プライバシーポリシー</a></div></footer>
+<script type="module">
+  import { renderForm } from "/js/wix/form-renderer.js";
+  const root = document.getElementById("form-root");
+  try {
+    renderForm(root, {
+      formId: "12b3b95d-516f-4748-b123-483130c671bd",
+      text: {
+        loading: "フォームを読み込んでいます…",
+        closed: "現在、受付を停止しています。お問い合わせからご連絡ください。",
+        submit: "申込内容を送信する",
+        next: "次へ",
+        back: "戻る",
+        sending: "送信中…",
+        required: "必須",
+        choose: "選択してください",
+        thanks: "申込内容を受け付けました。内容を確認のうえ、7営業日以内にPDFをメールでお届けします。",
+        unsupported: "この項目はこのページでは入力できません。"
+      }
+    });
+  } catch (e) {
+    root.textContent = "フォームを読み込めませんでした。お手数ですが、お問い合わせからご連絡ください。";
+  }
+</script>
+</body>
+</html>

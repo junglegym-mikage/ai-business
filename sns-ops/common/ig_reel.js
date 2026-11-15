@@ -213,6 +213,58 @@ function drawPick(x, spec, t) {
   }
   txt(x, spec.brand || '数秘のとびら', W / 2, 1680, 40, F.serif, K.gold, 'bold', 'center', 0.9);
 }
+// slides の場面に付けられるカラーのイラスト（任意。2026-11-15 追加：文字だけの画面は伸びにくいため）
+// scene.fig = { type:'sole', marks:['ball','arch','heel','outer'], hi:'arch', ball:'arch' }
+//   sole＝足裏（左が親指側）。場所: toes 足指 / ball 指の付け根 / arch 土踏まず / outer 外側 / heel かかと
+//   marks の順に①②③…の色丸、hi は強調（脈打つ）、ball はその場所でテニスボールを転がす動き
+// scene.fig = { type:'shoe', marks:['heel','flex','insole'], hi:'flex' }
+//   shoe＝横から見た靴（右がつま先）。場所: heel かかと / flex 曲がる所 / insole 中敷き / toe つま先
+// fig がある場面は文字が画面の下半分（中心 y=1255）に移る。1場面2〜3行・大きさ80以下が目安
+const FIGC = ['#c0563b', '#d39b2a', '#6f8f5a', '#5b7fa6', '#9a6b9a'];
+const FIGP = {
+  sole: { toes: [-10, -292], ball: [0, -168], arch: [-52, 2], outer: [88, 20], heel: [0, 212] },
+  shoe: { heel: [-235, -20], flex: [100, 30], insole: [-90, 40], toe: [285, 62] },
+};
+function drawFig(x, f, t, a) {
+  const P = FIGP[f.type]; if (!P) return;
+  x.save(); x.translate(W / 2, 690); x.globalAlpha = a;
+  x.fillStyle = K.bg2; x.beginPath(); x.ellipse(0, 0, 410, 365, 0, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = K.line; x.lineWidth = 4; x.stroke();
+  x.lineJoin = 'round'; x.lineWidth = 6; x.strokeStyle = K.soft;
+  if (f.type === 'sole') {
+    x.fillStyle = '#f1d6bf';
+    x.beginPath(); x.moveTo(0, 292);
+    x.bezierCurveTo(70, 292, 98, 240, 98, 175); x.bezierCurveTo(100, 90, 112, 0, 118, -90);
+    x.bezierCurveTo(124, -160, 118, -205, 98, -222); x.bezierCurveTo(40, -250, -60, -255, -100, -228);
+    x.bezierCurveTo(-125, -200, -118, -130, -96, -80); x.bezierCurveTo(-60, -20, -50, 60, -78, 130);
+    x.bezierCurveTo(-98, 200, -78, 292, 0, 292); x.closePath(); x.fill(); x.stroke();
+    [[-72, -282, 40, 50], [-12, -305, 23, 29], [32, -296, 21, 26], [70, -279, 18, 23], [101, -252, 15, 19]].forEach(([cx, cy, rx, ry]) => { x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.fill(); x.stroke(); });
+  } else if (f.type === 'shoe') {
+    x.fillStyle = '#e9e1d4';
+    x.beginPath(); x.moveTo(-300, 100); x.lineTo(310, 100); x.bezierCurveTo(345, 100, 345, 60, 320, 40);
+    x.bezierCurveTo(260, 0, 170, -20, 90, -60); x.lineTo(-40, -150); x.bezierCurveTo(-120, -150, -200, -140, -260, -120);
+    x.bezierCurveTo(-300, -60, -310, 40, -300, 100); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = K.soft; x.globalAlpha = a * 0.55; x.fillRect(-305, 100, 640, 34); x.globalAlpha = a;
+    x.setLineDash([16, 12]); x.beginPath(); x.moveTo(-280, 70); x.lineTo(300, 70); x.stroke(); x.setLineDash([]);
+  }
+  if (f.ball && P[f.ball]) {
+    const [bx, by] = P[f.ball], yy = by + Math.sin(t * 5) * 24;
+    x.fillStyle = '#cfe04f'; x.strokeStyle = '#8f9c2a'; x.lineWidth = 4;
+    x.beginPath(); x.arc(bx, yy, 56, 0, Math.PI * 2); x.fill(); x.stroke();
+    x.strokeStyle = '#ffffff'; x.lineWidth = 5;
+    x.beginPath(); x.arc(bx - 68, yy, 58, -0.8, 0.8); x.stroke(); x.beginPath(); x.arc(bx + 68, yy, 58, Math.PI - 0.8, Math.PI + 0.8); x.stroke();
+  }
+  (f.marks || []).forEach((m, k) => {
+    const p0 = P[m]; if (!p0) return; const p = f.ball === m ? [p0[0] - 150, p0[1]] : p0;
+    const on = f.hi === m, r = on ? 50 * (1 + 0.08 * Math.sin(t * 6)) : 40, al = a * (f.hi && !on ? 0.55 : 1);
+    if (f.ball === m) { x.globalAlpha = al; x.strokeStyle = FIGC[k % FIGC.length]; x.lineWidth = 5; x.beginPath(); x.moveTo(p[0] + r, p[1]); x.lineTo(p0[0] - 58, p0[1]); x.stroke(); }
+    x.globalAlpha = al; x.fillStyle = FIGC[k % FIGC.length];
+    x.beginPath(); x.arc(p[0], p[1], r, 0, Math.PI * 2); x.fill();
+    if (on) { x.strokeStyle = '#ffffff'; x.lineWidth = 6; x.stroke(); }
+    txt(x, String(k + 1), p[0], p[1] + 2, on ? 56 : 46, F.sans, '#ffffff', 'bold', 'center', al);
+  });
+  x.restore(); x.globalAlpha = 1;
+}
 // type "slides": 文字の場面を順に見せる（説明リール用）
 // spec: { type:'slides', dur, top:'上に出し続ける見出し', topFrom:秒, scenes:[{at:秒, lines:[[文字, 大きさ, 色('ink'|'gold'|'soft'|'seal'), 'serif'|'sans'], ...]}, ...] }
 function drawSlides(x, spec, t) {
@@ -221,7 +273,8 @@ function drawSlides(x, spec, t) {
   const tin = t - sc[i].at, next = sc[i + 1], tout = next ? next.at - t : 99;
   const a = (i === 0 ? 0.35 + 0.65 * ease(tin / 0.3) : ease(tin / 0.3)) * clamp(tout / 0.2), dy = (1 - ease(tin / 0.35)) * 40;
   const L = sc[i].lines, gap = 34, hs = L.map(l => l[1] * 1.25), total = hs.reduce((p, h) => p + h, 0) + gap * (L.length - 1);
-  let y = 900 - total / 2 + dy;
+  if (sc[i].fig) drawFig(x, sc[i].fig, t, a);
+  let y = (sc[i].fig ? 1255 : 900) - total / 2 + dy;
   L.forEach(([s, size, col, font], k) => { y += hs[k] / 2; txt(x, s, W / 2, y, size, font === 'sans' ? F.sans : F.serif, K[col] || K.ink, 'bold', 'center', a); y += hs[k] / 2 + gap; });
   if (spec.top && t >= spec.topFrom) txt(x, spec.top, W / 2, 230, 52, F.serif, K.gold, 'bold', 'center', ease((t - spec.topFrom) / 0.3));
   // 進み具合の点

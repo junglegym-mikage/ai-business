@@ -359,14 +359,14 @@ def carousel_exam():
 
 
 # ---------- スライドをリールにする（全投稿リール化） ----------
-def slides_reel(slides, series, cover_sec=2.6, sec=3.8):
+def slides_reel(slides, series, cover_sec=2.6, sec=3.8, secs=None):
     """カルーセル用の 1080x1350 スライドを 1080x1920 の縦動画に並べる。
     上 230px・下 340px の安全域の間（y=230〜1580）に置き、切り替えはフェード＋少し上へ。"""
     base, _ = frame_base(series)
     base = base.convert("RGB")
     plan, t0 = [], 0.0
     for i, s in enumerate(slides):
-        dur = cover_sec if i == 0 else sec
+        dur = secs[i] if secs else (cover_sec if i == 0 else sec)  # secs：1枚ごとの秒数（4択クイズ用。2026-11-20〜）
         plan.append((t0, dur, s))
         t0 += dur
     total = t0 + 2.6
@@ -537,6 +537,10 @@ def spec_slides_w2(sp):
     if sp.get("kind") == "table":
         out.append(table_slide(s, sp["table"], sp["note"]))
         return out
+    if sp.get("kind") == "quiz":  # 型E 4択クイズ（2026-11-20〜）：表紙→A〜Dの表→答え
+        out.append(table_slide(s, sp["table"], sp["note"]))
+        out.append(slide(s, sp["answer"][0], sp["answer"][1], None, sp["note"]))
+        return out
     total = len(sp["slides"])
     for i, (title, body) in enumerate(sp["slides"], 1):
         fr = sp.get("frac")
@@ -568,6 +572,8 @@ def build_w2(out, content="content_w2", only=None):
         sl = spec_slides_w2(sp)
         if sp.get("kind") == "table":
             fn, dur = slides_reel(sl, sp["series"], cover_sec=2.2, sec=7.5)
+        elif sp.get("kind") == "quiz":
+            fn, dur = slides_reel(sl, sp["series"], secs=[2.2, 6.5, 4.2])
         else:
             fn, dur = slides_reel(sl, sp["series"])
         render_reel(out / f"reel-{key}.mp4", fn, dur)

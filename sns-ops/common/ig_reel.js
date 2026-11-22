@@ -224,10 +224,69 @@ const FIGC = ['#c0563b', '#d39b2a', '#6f8f5a', '#5b7fa6', '#9a6b9a'];
 const FIGP = {
   sole: { toes: [-10, -292], ball: [0, -168], arch: [-52, 2], outer: [88, 20], heel: [0, 212] },
   shoe: { heel: [-235, -20], flex: [100, 30], insole: [-90, 40], toe: [285, 62] },
+  bands: {}, gift: {},
 };
+// scene.fig = { type:'bands', rows:[['立ち仕事','かかとがしっかりした靴'], ...], hi:0, from:2.2 }（2026-11-22 追加）
+//   色帯の一枚表（「〇〇別ガイド」用）。rows は2〜4段、1段目の文字は9字・2段目は16字まで。from＝その場面の開始秒（段が順に出る）。hi＝強調する段の番号（0から）、keys＝色の部分の文字（省略時 1,2,3…。例 ['A','B','C']）
+// scene.fig = { type:'gift', card:true, home:true }（2026-11-22 追加）
+//   リボンの箱からインソール2足がのぞく贈りものの絵。card＝メッセージカード、home＝家の絵と矢印（直送）
+function drawBands(x, f, t, a) {
+  const rows = (f.rows || []).slice(0, 4), n = rows.length, bh = n > 3 ? 150 : 180, gap = 22, tot = n * bh + (n - 1) * gap;
+  rows.forEach(([lab, sub], k) => {
+    const ra = a * clamp((t - (f.from || 0) - k * 0.3) / 0.3); if (ra <= 0) return;
+    const y = -tot / 2 + k * (bh + gap), on = f.hi === k, col = FIGC[k % FIGC.length];
+    x.globalAlpha = ra * (f.hi != null && !on ? 0.6 : 1);
+    x.fillStyle = K.bg2; x.beginPath(); x.roundRect(-470, y, 940, bh, 28); x.fill();
+    x.strokeStyle = on ? col : K.line; x.lineWidth = on ? 8 : 4; x.stroke();
+    x.fillStyle = col; x.beginPath(); x.roundRect(-470, y, 120, bh, [28, 0, 0, 28]); x.fill();
+    const g = x.globalAlpha; txt(x, (f.keys && f.keys[k]) || String(k + 1), -410, y + bh / 2 + 2, 64, F.sans, '#ffffff', 'bold', 'center', g);
+    txt(x, lab, -320, y + bh / 2 - (sub ? 30 : 0), 54, F.sans, K.ink, 'bold', 'left', g);
+    if (sub) txt(x, sub, -320, y + bh / 2 + 36, 38, F.sans, col, 'bold', 'left', g);
+  });
+}
+function drawGift(x, f, t, a) {
+  x.fillStyle = K.bg2; x.beginPath(); x.ellipse(0, 0, 410, 365, 0, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = K.line; x.lineWidth = 4; x.stroke();
+  const ox = f.home ? -110 : 0, bob = Math.sin(t * 3) * 8;
+  // インソール2足（箱からのぞく）
+  [[-70, -0.18], [70, 0.18]].forEach(([dx, r]) => {
+    x.save(); x.translate(ox + dx, -60 + bob); x.rotate(r); x.fillStyle = '#f1d6bf'; x.strokeStyle = K.soft; x.lineWidth = 5;
+    x.translate(0, -40); x.scale(dx < 0 ? -0.5 : 0.5, 0.5); x.lineWidth = 9;
+    x.beginPath(); x.moveTo(0, 292);
+    x.bezierCurveTo(70, 292, 98, 240, 98, 175); x.bezierCurveTo(100, 90, 112, 0, 118, -90);
+    x.bezierCurveTo(124, -160, 118, -205, 98, -222); x.bezierCurveTo(40, -250, -60, -255, -100, -228);
+    x.bezierCurveTo(-125, -200, -118, -130, -96, -80); x.bezierCurveTo(-60, -20, -50, 60, -78, 130);
+    x.bezierCurveTo(-98, 200, -78, 292, 0, 292); x.closePath(); x.fill(); x.stroke();
+    x.strokeStyle = '#6f8f5a'; x.lineWidth = 10; x.beginPath(); x.ellipse(-50, 20, 26, 110, 0.05, 0, Math.PI * 2); x.stroke(); x.restore();
+  });
+  // 箱とリボン
+  x.fillStyle = '#5b7fa6'; x.strokeStyle = '#3f5f82'; x.lineWidth = 5;
+  x.beginPath(); x.roundRect(ox - 190, 10, 380, 230, 18); x.fill(); x.stroke();
+  x.fillStyle = '#4a6d93'; x.beginPath(); x.roundRect(ox - 210, -10, 420, 60, 14); x.fill(); x.stroke();
+  x.fillStyle = '#d39b2a'; x.fillRect(ox - 26, -10, 52, 250);
+  x.save(); x.translate(ox, -14); x.fillStyle = '#d39b2a'; x.strokeStyle = '#a8761a'; x.lineWidth = 5;
+  [-1, 1].forEach(sg => { x.beginPath(); x.ellipse(sg * 52, -22, 56, 30, sg * 0.5, 0, Math.PI * 2); x.fill(); x.stroke(); });
+  x.beginPath(); x.arc(0, -10, 22, 0, Math.PI * 2); x.fill(); x.stroke(); x.restore();
+  if (f.card) {
+    x.save(); x.translate(ox + 150, 170); x.rotate(-0.12); x.fillStyle = '#ffffff'; x.strokeStyle = K.line; x.lineWidth = 4;
+    x.beginPath(); x.roundRect(-80, -55, 160, 110, 10); x.fill(); x.stroke();
+    x.strokeStyle = '#c0563b'; x.lineWidth = 5; x.beginPath(); x.moveTo(-50, -18); x.lineTo(50, -18); x.moveTo(-50, 8); x.lineTo(50, 8); x.moveTo(-50, 34); x.lineTo(15, 34); x.stroke(); x.restore();
+  }
+  if (f.home) {
+    const hx = 250, hy = 70;
+    x.fillStyle = '#e9e1d4'; x.strokeStyle = K.soft; x.lineWidth = 5;
+    x.beginPath(); x.rect(hx - 75, hy - 20, 150, 130); x.fill(); x.stroke();
+    x.fillStyle = '#c0563b'; x.beginPath(); x.moveTo(hx - 100, hy - 15); x.lineTo(hx, hy - 105); x.lineTo(hx + 100, hy - 15); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = '#9a6b3f'; x.fillRect(hx - 22, hy + 45, 44, 65);
+    const k = (t * 0.8) % 1; x.strokeStyle = '#6f8f5a'; x.lineWidth = 7; x.setLineDash([14, 12]); x.lineDashOffset = -k * 52;
+    x.beginPath(); x.moveTo(ox + 215, -120); x.quadraticCurveTo(170, -230, hx - 10, -150); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#6f8f5a'; x.beginPath(); x.moveTo(hx - 30, -170); x.lineTo(hx + 8, -140); x.lineTo(hx - 34, -128); x.closePath(); x.fill();
+  }
+}
 function drawFig(x, f, t, a) {
   const P = FIGP[f.type]; if (!P) return;
   x.save(); x.translate(W / 2, 690); x.globalAlpha = a;
+  if (f.type === 'bands' || f.type === 'gift') { (f.type === 'bands' ? drawBands : drawGift)(x, f, t, a); x.restore(); x.globalAlpha = 1; return; }
   x.fillStyle = K.bg2; x.beginPath(); x.ellipse(0, 0, 410, 365, 0, 0, Math.PI * 2); x.fill();
   x.strokeStyle = K.line; x.lineWidth = 4; x.stroke();
   x.lineJoin = 'round'; x.lineWidth = 6; x.strokeStyle = K.soft;

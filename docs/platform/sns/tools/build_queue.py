@@ -10,6 +10,7 @@ import content_w1 as C
 import content_w2 as C2
 import content_w3 as C3
 import content_w4 as C4
+import content_w5 as C5
 
 HERE = Path(__file__).resolve().parent
 SNS = HERE.parent
@@ -90,6 +91,7 @@ def main():
     q += week(C2, "docs/platform/sns/week2")
     q += week(C3, "docs/platform/sns/week3")
     q += week(C4, "docs/platform/sns/week4")
+    q += week(C5, "docs/platform/sns/week5")
     (SNS / "queue.json").write_text(json.dumps(q, ensure_ascii=False, indent=1) + "\n")
     print(len(q), "items")
 

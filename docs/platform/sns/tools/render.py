@@ -531,6 +531,63 @@ def table_slide(series, tb, note):
     return img.convert("RGB")
 
 
+def level_slide(series, levels, i, q, ans=None, note=None):
+    """型H 級別クイズ（2026-11-27〜）。上に級の段階を固定表示し、今の級を色で光らせる。ans があれば答えを出す。"""
+    img, d = frame_base(series, CW, CH, safe_top=70)
+    acc = ACC[series]
+    n, gap = len(levels), 14
+    bw = (CW - 120 - gap * (n - 1)) / n
+    for j, lab in enumerate(levels):
+        x = 60 + j * (bw + gap)
+        fill = acc if j == i else ((58, 78, 108) if j < i else (32, 52, 82))
+        d.rounded_rectangle([x, 170, x + bw, 262], 18, fill=fill + (255,))
+        f = font(42)
+        col = BG if j == i else (WHITE if j < i else MUTED)
+        d.text((x + (bw - d.textlength(lab, font=f)) / 2, 188), lab, font=f, fill=col + (255,))
+    d.text((60, 300), f"{levels[i]}の問題", font=font(40), fill=acc + (255,))
+    y = text_block(img, d, wrap(d, q, font(62), 940), 370, 62, t=99, center=False, x=70, gap=1.4)
+    if ans:
+        lines = wrap(d, ans, font(58), 860)
+        h = int(len(lines) * 58 * 1.35) + 120
+        top = y + 50
+        d.rounded_rectangle([60, top, CW - 60, top + h], 28, outline=acc + (255,), width=6, fill=(26, 44, 70, 255))
+        d.text((100, top + 24), "答え", font=font(40), fill=acc + (255,))
+        text_block(img, d, lines, top + 84, 58, color=WHITE, t=99, center=False, x=100, gap=1.35)
+    if note:
+        f = font(26, False)
+        d.text(((CW - d.textlength(note, font=f)) / 2, CH - 130), note, font=f, fill=MUTED + (255,))
+    return img.convert("RGB")
+
+
+def pair_slide(series, k, total, a, b, pick=None, why=None, note=None):
+    """型I 究極の2択（2026-11-27〜）。AとBを上下に並べ、pick（"A"/"B"）があれば答えを光らせて理由を出す。"""
+    img, d = frame_base(series, CW, CH, safe_top=70)
+    acc = ACC[series]
+    head = f"究極の2択 {k}/{total}"
+    d.text(((CW - d.textlength(head, font=font(48))) / 2, 170), head, font=font(48), fill=acc + (255,))
+    boxes = [("A", a, 280), ("B", b, 560)]
+    for lab, txt, top in boxes:
+        on = pick == lab
+        off = pick is not None and not on
+        fill = (26, 44, 70) if not on else (30, 62, 80)
+        d.rounded_rectangle([60, top, CW - 60, top + 230], 30, fill=fill + (255,),
+                            outline=(acc if on else (70, 90, 120)) + (255,), width=8 if on else 3)
+        d.text((100, top + 70), lab, font=font(84), fill=((90, 105, 128) if off else acc) + (255,))
+        lines = wrap(d, txt, font(54), 760)
+        ty = top + (230 - len(lines) * 70) / 2
+        text_block(img, d, lines, int(ty), 54, color=(MUTED if off else WHITE), t=99, center=False, x=210, gap=1.3)
+    if pick is None:
+        d.text(((CW - d.textlength("VS", font=font(40))) / 2, 518), "VS", font=font(40), fill=MUTED + (255,))
+        msg = "どっち？"
+        d.text(((CW - d.textlength(msg, font=font(60))) / 2, 860), msg, font=font(60), fill=WHITE + (255,))
+    elif why:
+        text_block(img, d, wrap(d, why, font(46), 920), 840, 46, color=acc, t=99, gap=1.35)
+    if note:
+        f = font(26, False)
+        d.text(((CW - d.textlength(note, font=f)) / 2, CH - 130), note, font=f, fill=MUTED + (255,))
+    return img.convert("RGB")
+
+
 def spec_slides_w2(sp):
     s = sp["series"]
     out = [slide(s, sp["cover"][0], sp["cover"][1], cover=True)]
@@ -540,6 +597,19 @@ def spec_slides_w2(sp):
     if sp.get("kind") == "quiz":  # 型E 4択クイズ（2026-11-20〜）：表紙→A〜Dの表→答え
         out.append(table_slide(s, sp["table"], sp["note"]))
         out.append(slide(s, sp["answer"][0], sp["answer"][1], None, sp["note"]))
+        return out
+    if sp.get("kind") == "levels":  # 型H 級別クイズ（2026-11-27〜）：表紙→（問題→答え）×級の数
+        labs = [lv[0] for lv in sp["levels"]]
+        for i, (_, q, a) in enumerate(sp["levels"]):
+            out.append(level_slide(s, labs, i, q, None, sp["note"]))
+            out.append(level_slide(s, labs, i, q, a, sp["note"]))
+        return out
+    if sp.get("kind") == "choice2":  # 型I 究極の2択（2026-11-27〜）：表紙→（2択→答え）×問題数→まとめ
+        n = len(sp["pairs"])
+        for k, (a, b, pick, why) in enumerate(sp["pairs"], 1):
+            out.append(pair_slide(s, k, n, a, b, None, None, sp["note"]))
+            out.append(pair_slide(s, k, n, a, b, pick, why, sp["note"]))
+        out.append(slide(s, sp["outro"][0], sp["outro"][1], None, sp["note"]))
         return out
     total = len(sp["slides"])
     for i, (title, body) in enumerate(sp["slides"], 1):
@@ -574,6 +644,13 @@ def build_w2(out, content="content_w2", only=None):
             fn, dur = slides_reel(sl, sp["series"], cover_sec=2.2, sec=7.5)
         elif sp.get("kind") == "quiz":
             fn, dur = slides_reel(sl, sp["series"], secs=[2.2, 6.5, 4.2])
+        elif sp.get("kind") == "levels":  # 問題2.6秒→答え1.6秒（最後の級の答えだけ2.4秒）
+            n = len(sp["levels"])
+            secs = [2.2] + sum(([2.6, 2.4 if i == n - 1 else 1.6] for i in range(n)), [])
+            fn, dur = slides_reel(sl, sp["series"], secs=secs)
+        elif sp.get("kind") == "choice2":  # 2択2.6秒→答え2.2秒、最後にまとめ2.8秒
+            secs = [2.2] + [2.6, 2.2] * len(sp["pairs"]) + [2.8]
+            fn, dur = slides_reel(sl, sp["series"], secs=secs)
         else:
             fn, dur = slides_reel(sl, sp["series"])
         render_reel(out / f"reel-{key}.mp4", fn, dur)
